@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Preventivas — Fornos e VCCs Rational</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+  header { background: #1a237e; color: white; }
+  .header-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 32px; cursor: pointer; user-select: none; }
+  .header-bar:hover { background: rgba(255,255,255,0.07); }
+  header h1 { font-size: 1.2rem; font-weight: 600; }
+  header span { font-size: 0.82rem; opacity: 0.7; }
+  .header-toggle { font-size: 1.1rem; opacity: 0.8; transition: transform 0.25s; }
+  .header-toggle.fechado { transform: rotate(-180deg); }
+  .header-extra { padding: 0 32px 12px; font-size: 0.82rem; opacity: 0.75; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 10px; }
+  .header-extra.oculto { display: none; }
+  .container { max-width: 1350px; margin: 0 auto; padding: 24px 16px; }
+  .btn { padding: 9px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: #1a237e; color: white; }
+  .btn-success { background: #2e7d32; color: white; }
+  .btn-danger  { background: #c62828; color: white; font-size: 0.8rem; padding: 5px 12px; }
+  .btn-outline { background: white; color: #1a237e; border: 1.5px solid #1a237e; }
+  .btn-import  { background: #00695c; color: white; }
+  .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; justify-content: center; align-items: flex-start; padding: 20px; overflow-y: auto; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 12px; padding: 28px; width: 100%; max-width: 760px; margin: auto; }
+  .modal-wide { max-width: 900px; }
+  .modal h2 { font-size: 1.1rem; margin-bottom: 20px; color: #1a237e; border-bottom: 2px solid #e8eaf6; padding-bottom: 10px; }
+
+  .dropzone { border: 3px dashed #00897b; border-radius: 12px; background: #e0f2f1; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 14px; position: relative; }
+  .dropzone:hover, .dropzone.dragover { background: #b2dfdb; border-color: #00695c; }
+  .dropzone .icon { font-size: 2.5rem; margin-bottom: 8px; }
+  .dropzone p { color: #00695c; font-weight: 600; font-size: 1rem; margin-bottom: 4px; }
+  .dropzone small { color: #555; font-size: 0.82rem; }
+  .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+  .progress-bar { background: #e0e0e0; border-radius: 8px; height: 8px; margin: 10px 0; overflow: hidden; display: none; }
+  .progress-bar .fill { height: 100%; background: #00897b; transition: width 0.3s; width: 0; border-radius: 8px; }
+
+  .resultado-box { background: #f1f8e9; border: 1px solid #aed581; border-radius: 8px; padding: 14px 16px; font-size: 0.83rem; color: #33691e; display: none; margin-bottom: 10px; }
+  .resultado-box strong { display: block; margin-bottom: 8px; font-size: 0.92rem; }
+  .resultado-box .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+  .resultado-box .item { display: flex; gap: 6px; }
+  .resultado-box .lbl { font-weight: 700; min-width: 70px; }
+
+  .debug-box { background: #fafafa; border: 1px solid #ddd; border-radius: 8px; padding: 12px; font-size: 0.75rem; font-family: monospace; white-space: pre-wrap; max-height: 220px; overflow-y: auto; display: none; margin-bottom: 10px; color: #444; }
+
+  .erro-msg { color: #c62828; font-size: 0.85rem; margin-bottom: 10px; display: none; padding: 8px 12px; background: #ffebee; border-radius: 6px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .sec-title { grid-column: 1/-1; border-top: 1px solid #eee; padding-top: 14px; margin-top: 4px; font-size: 0.9rem; color: #1a237e; font-weight: 600; }
+  label { display: block; font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 4px; }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #1a237e; }
+  textarea { resize: vertical; min-height: 70px; }
+  .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .top-bar h2 { font-size: 1rem; color: #555; }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .filters select, .filters input { width: auto; padding: 6px 10px; font-size: 0.85rem; }
+
+  .table-wrap { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 1050px; }
+  thead { background: #e8eaf6; }
+  th { padding: 11px 12px; text-align: left; font-weight: 600; color: #1a237e; white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+  .badge-orange { background:#fff3e0; color:#e65100; }
+  .badge-blue   { background:#e3f2fd; color:#0d47a1; }
+  .badge-green  { background:#e8f5e9; color:#1b5e20; }
+  .badge-red    { background:#ffebee; color:#b71c1c; }
+  .badge-purple { background:#f3e5f5; color:#4a148c; }
+  .days-badge { font-weight:700; font-size:0.8rem; }
+  .days-ok { color:#2e7d32; } .days-warn { color:#f57f17; } .days-bad { color:#c62828; }
+  .pecas-list { max-width:230px; }
+  .peca-item { display:flex; align-items:center; gap:6px; font-size:0.8rem; margin-bottom:3px; }
+  .peca-item .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:#2e7d32; }
+  .pecas-toggle { display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.8rem; color:#1a237e; font-weight:600; white-space:nowrap; user-select:none; }
+  .pecas-toggle:hover { opacity:0.75; }
+  .pecas-toggle .arr { font-size:0.9rem; transition:transform 0.2s; }
+  .pecas-toggle .arr.open { transform:rotate(90deg); }
+  .pecas-body { display:none; margin-top:5px; }
+  .obs-toggle { display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.75rem; color:#555; margin-top:5px; user-select:none; }
+  .obs-toggle:hover { color:#1a237e; }
+  .obs-body { display:none; margin-top:4px; font-size:0.78rem; color:#444; line-height:1.45; background:#f9f9f9; border-left:3px solid #c5cae9; padding:5px 8px; border-radius:0 4px 4px 0; max-width:280px; }
+  .no-data { text-align:center; padding:48px; color:#aaa; font-size:0.95rem; }
+  .stats-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+  .stat-card { background:white; border-radius:8px; padding:14px 18px; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
+  .stat-card .num { font-size:1.6rem; font-weight:700; color:#1a237e; }
+  .stat-card .lbl { font-size:0.75rem; color:#888; margin-top:2px; }
+  .orcamento-link { color:#1a237e; text-decoration:none; font-size:0.8rem; }
+
+  /* TABS */
+  .tabs { display:flex; gap:0; margin-bottom:0; border-bottom:2px solid #e8eaf6; }
+  .tab-btn { padding:10px 22px; border:none; background:none; cursor:pointer; font-size:0.9rem; font-weight:500; color:#888; border-bottom:3px solid transparent; margin-bottom:-2px; transition:all 0.2s; }
+  .tab-btn.active { color:#1a237e; border-bottom-color:#1a237e; background:white; border-radius:6px 6px 0 0; }
+  .tab-btn:hover:not(.active) { color:#555; background:#f5f5f5; }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* FINANCEIRO */
+  .fin-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:20px; }
+  .fin-card { background:white; border-radius:8px; padding:14px 18px; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
+  .fin-card .num { font-size:1.5rem; font-weight:700; color:#2e7d32; }
+  .fin-card .lbl { font-size:0.75rem; color:#888; margin-top:2px; }
+  .fin-card .sub { font-size:0.78rem; color:#aaa; }
+
+  .equip-section { background:white; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,0.08); margin-bottom:16px; overflow:hidden; }
+  .equip-header { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; background:#e8eaf6; cursor:pointer; user-select:none; }
+  .equip-header:hover { background:#dde0f5; }
+  .equip-header h3 { font-size:0.95rem; color:#1a237e; font-weight:600; margin:0; }
+  .equip-header .etotal { font-size:1rem; font-weight:700; color:#2e7d32; }
+  .equip-body { display:none; }
+  .equip-body.open { display:block; }
+
+  .nf-table { width:100%; border-collapse:collapse; font-size:0.83rem; }
+  .nf-table th { padding:9px 14px; text-align:left; font-weight:600; color:#555; background:#f9f9f9; border-bottom:1px solid #eee; white-space:nowrap; }
+  .nf-table td { padding:9px 14px; border-bottom:1px solid #f5f5f5; vertical-align:top; }
+  .nf-table tr:last-child td { border-bottom:none; }
+  .nf-table tr:hover td { background:#fafafa; }
+  .tag-pago { display:inline-block; padding:2px 8px; background:#e8f5e9; color:#2e7d32; border-radius:10px; font-size:0.72rem; font-weight:600; }
+  .tag-pendente { display:inline-block; padding:2px 8px; background:#fff3e0; color:#e65100; border-radius:10px; font-size:0.72rem; font-weight:600; }
+
+  /* DASHBOARD PEÇAS */
+  .dash-section { background:white; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,0.08); margin-bottom:16px; overflow:hidden; }
+  .dash-section h3 { font-size:0.95rem; color:#1a237e; font-weight:600; padding:14px 20px; border-bottom:1px solid #e8eaf6; margin:0; background:#f5f7ff; }
+  .bar-row { display:flex; align-items:center; padding:7px 16px; border-bottom:1px solid #f5f5f5; gap:10px; }
+  .bar-row:last-child { border-bottom:none; }
+  .bar-rank { font-size:0.75rem; font-weight:700; color:#aaa; min-width:20px; text-align:right; }
+  .bar-label { font-size:0.8rem; color:#333; min-width:260px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar-label small { color:#aaa; font-size:0.72rem; display:block; }
+  .bar-track { flex:1; background:#f0f0f0; border-radius:6px; height:14px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:6px; transition:width 0.4s ease; }
+  .bar-fill-freq { background:linear-gradient(90deg,#1a237e,#5c6bc0); }
+  .bar-fill-val  { background:linear-gradient(90deg,#1b5e20,#43a047); }
+  .bar-val { font-size:0.8rem; font-weight:600; min-width:90px; text-align:right; color:#555; }
+  .bar-badge { font-size:0.72rem; padding:2px 7px; border-radius:10px; font-weight:600; white-space:nowrap; }
+  .bb-gas  { background:#fff8e1; color:#f57f17; }
+  .bb-ele  { background:#e3f2fd; color:#0d47a1; }
+  .bb-vcc  { background:#f3e5f5; color:#6a1b9a; }
+  .bb-mul  { background:#f1f8e9; color:#33691e; }
+  .bb-svc  { background:#fce4ec; color:#880e4f; }
+  .pecas-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:900px){ .pecas-grid { grid-template-columns:1fr; } }
+  .equip-pie { display:flex; flex-wrap:wrap; gap:8px; padding:14px 20px; }
+  .pie-item { display:flex; align-items:center; gap:6px; font-size:0.82rem; }
+  .pie-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+  .full-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+  .full-table th { padding:9px 12px; background:#e8eaf6; color:#1a237e; font-weight:600; text-align:left; position:sticky; top:0; }
+  .full-table td { padding:8px 12px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+  .full-table tr:hover td { background:#fafafa; }
+  .scroll-table { max-height:400px; overflow-y:auto; border-radius:0 0 8px 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-bar" onclick="toggleHeader()">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <img src="data:image/png;base64,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" alt="Liv Up" style="height:44px;width:44px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+      <div>
+        <h1>Controle de Preventivas — Fornos e VCCs Rational</h1>
+        <span>Gestão de preventivas — peças, orçamentos e execução · Liv Up Itapevi</span>
+      </div>
+    </div>
+    <span class="header-toggle" id="headerToggle">▲</span>
+  </div>
+  <div class="header-extra oculto" id="headerExtra">
+    Liv Up Itapevi — Assistec — Field Control
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TABS -->
+  <div class="tabs" style="margin-bottom:20px;">
+    <button class="tab-btn active" onclick="trocarTab('registros')">📋 Registros de Preventiva</button>
+    <button class="tab-btn" onclick="trocarTab('financeiro')">💰 Financeiro — Notas Assistec</button>
+    <button class="tab-btn" onclick="trocarTab('pecas')">📊 Dashboard de Peças</button>
+  </div>
+
+  <!-- PAINEL REGISTROS -->
+  <div class="tab-panel active" id="tab-registros">
+  <div class="stats-bar" id="statsBar"></div>
+  <div class="top-bar">
+    <h2 id="countLabel">0 registros</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <div class="filters">
+        <select id="filtroStatus" onchange="renderTabela()">
+          <option value="">Todos os status</option>
+          <option value="Levantamento">Levantamento</option>
+          <option value="Em Aprovação">Em Aprovação</option>
+          <option value="Aprovado">Aprovado</option>
+          <option value="Executado">Executado</option>
+          <option value="Reprovado">Reprovado</option>
+        </select>
+        <input type="text" id="filtroForno" placeholder="Buscar forno / OS..." oninput="renderTabela()" style="width:160px;">
+      </div>
+      <button class="btn btn-import" onclick="abrirImport()">📄 Importar PDF</button>
+      <button class="btn btn-primary" onclick="abrirModal()">+ Novo Registro</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Relatório / OS / Forno</th><th>Peças Levantadas</th><th>Orçamento</th>
+        <th>Status</th><th>Data Levantamento</th><th>Data Execução</th><th>Prazo (dias)</th><th>Ações</th>
+      </tr></thead>
+      <tbody id="tabelaBody"></tbody>
+    </table>
+    <div class="no-data" id="noData" style="display:none;">Nenhum registro. Clique em "📄 Importar PDF" ou "+ Novo Registro".</div>
+  </div>
+  </div><!-- fim tab-registros -->
+
+  <!-- PAINEL PEÇAS -->
+  <div class="tab-panel" id="tab-pecas">
+    <div id="pecasSummary" class="fin-grid"></div>
+    <div id="pecasContent"></div>
+  </div>
+
+  <!-- PAINEL FINANCEIRO -->
+  <div class="tab-panel" id="tab-financeiro">
+    <div class="fin-grid" id="finSummary"></div>
+    <div id="finEquipamentos"></div>
+  </div>
+
+</div>
+
+<!-- MODAL IMPORTAR PDF -->
+<div class="modal-overlay" id="modalImport">
+  <div class="modal modal-wide">
+    <h2>📄 Importar Relatório de Preventiva (PDF)</h2>
+    <div class="dropzone" id="dropzone">
+      <input type="file" accept=".pdf" id="fileInput" onchange="handleFile(this.files[0])">
+      <div class="icon">📂</div>
+      <p>Arraste o PDF aqui ou clique para selecionar</p>
+      <small>Relatórios do Field Control (Assistec)</small>
+    </div>
+    <div class="progress-bar" id="progressBar"><div class="fill" id="progressFill"></div></div>
+    <div class="resultado-box" id="resultadoBox"></div>
+    <div id="debugToggle" style="display:none;margin-bottom:8px;">
+      <button class="btn btn-outline btn-sm" onclick="toggleDebug()">🔍 Ver texto bruto extraído do PDF</button>
+    </div>
+    <div class="debug-box" id="debugBox"></div>
+    <div class="erro-msg" id="erroImport"></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="fecharImport()">Cancelar</button>
+      <button class="btn btn-success" id="btnConfirmar" style="display:none" onclick="confirmarImport()">Revisar e Salvar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FORMULÁRIO -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitulo">Novo Registro de Preventiva</h2>
+    <div class="form-grid">
+      <div><label>Número do Relatório</label><input type="text" id="f_relatorio" placeholder="ID do relatório Field Control"></div>
+      <div><label>Número da OS</label><input type="text" id="f_os" placeholder="Ex: 14894"></div>
+      <div><label>Número / ID do Forno</label><input type="text" id="f_forno" placeholder="Ex: #7 - Produção 1"></div>
+      <div><label>Técnico Responsável</label><input type="text" id="f_tecnico" placeholder="Ex: Radeione Gomes"></div>
+      <div class="full"><label>Modelo do Equipamento</label><input type="text" id="f_modelo" placeholder="Ex: Rational SCC WE 202 Gás"></div>
+      <div class="full"><label>Número de Série</label><input type="text" id="f_serie" placeholder="Ex: G22SI19022730950"></div>
+      <div class="full"><label>Peças Levantadas na Preventiva (uma por linha)</label><textarea id="f_pecas" placeholder="Eletrodo do vapor&#10;Borracha do carrinho"></textarea></div>
+      <div class="full"><label>Observações da Preventiva</label><textarea id="f_obs_prev"></textarea></div>
+      <div><label>Data do Levantamento</label><input type="date" id="f_data_levantamento"></div>
+
+      <div class="sec-title">— Orçamento —</div>
+      <div><label>Valor do Orçamento (R$)</label><input type="number" id="f_valor_orcamento" placeholder="0,00" step="0.01" min="0"></div>
+      <div><label>Link ou Caminho do Arquivo</label><input type="text" id="f_link_orcamento" placeholder="Caminho ou link do orçamento"></div>
+      <div class="full"><label>Peças do orçamento batem com o levantamento?</label>
+        <select id="f_conferencia">
+          <option value="">Não verificado</option>
+          <option value="Sim">Sim — bate exatamente</option>
+          <option value="Parcial">Parcial — algumas divergências</option>
+          <option value="Não">Não — peças diferentes</option>
+        </select>
+      </div>
+      <div class="full"><label>Observações sobre o Orçamento</label><textarea id="f_obs_orcamento" placeholder="Notas, divergências, fornecedor..."></textarea></div>
+
+      <div class="sec-title">— Execução —</div>
+      <div><label>Status</label>
+        <select id="f_status">
+          <option value="Levantamento">Levantamento</option>
+          <option value="Em Aprovação">Em Aprovação</option>
+          <option value="Aprovado">Aprovado</option>
+          <option value="Executado">Executado</option>
+          <option value="Reprovado">Reprovado</option>
+        </select>
+      </div>
+      <div><label>Data da Execução / Instalação</label><input type="date" id="f_data_execucao"></div>
+      <div class="full"><label>Descrição do Trabalho Executado</label><textarea id="f_trabalho" placeholder="Descreva o que foi feito..."></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-success" onclick="salvar()">Salvar Registro</button>
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+function toggleHeader() {
+  const extra = document.getElementById('headerExtra');
+  const tog   = document.getElementById('headerToggle');
+  const oculto = extra.classList.toggle('oculto');
+  tog.classList.toggle('fechado', oculto);
+}
+
+function togglePecas(id) {
+  const body = document.getElementById(id);
+  const rid  = id.replace('p','');
+  const arr  = document.getElementById('arr_'+rid);
+  const aberto = body.style.display === 'block';
+  body.style.display = aberto ? 'none' : 'block';
+  if(arr) arr.classList.toggle('open', !aberto);
+}
+
+function toggleObs(id) {
+  const body = document.getElementById(id);
+  const rid  = id.replace('ob','');
+  const arr  = document.getElementById('oarr_'+rid);
+  const aberto = body.style.display === 'block';
+  body.style.display = aberto ? 'none' : 'block';
+  if(arr) arr.style.transform = aberto ? '' : 'rotate(90deg)';
+}
+
+const STORAGE_KEY = 'preventiva_fornos_v3';
+let registros = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let editandoId = null;
+let dadosImportados = null;
+let textoDebug = '';
+
+// ── DRAG AND DROP ──────────────────────────────────────────────
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f); else mostrarErro('Solte um arquivo PDF.');
+});
+
+// ── EXTRAIR TEXTO DO PDF ────────────────────────────────────────
+async function extrairTextoPDF(pdf) {
+  let linhasGeral = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const vp   = page.getViewport({ scale: 1 });
+    const cont = await page.getTextContent();
+
+    // Pega todos os itens com coordenadas
+    const itens = cont.items
+      .filter(i => i.str && i.str.trim())
+      .map(i => ({
+        str: i.str.trim(),
+        x:   Math.round(i.transform[4]),
+        y:   Math.round(vp.height - i.transform[5]), // Y de cima pra baixo
+      }));
+
+    // Ordena: Y crescente (cima→baixo), depois X (esquerda→direita)
+    itens.sort((a, b) => {
+      const dy = a.y - b.y;
+      return Math.abs(dy) > 4 ? dy : a.x - b.x;
+    });
+
+    // Agrupa em linhas: itens com Y diferindo até 4px ficam na mesma linha
+    const linhas = [];
+    let yAtual = -9999, grupoAtual = [];
+    for (const item of itens) {
+      if (Math.abs(item.y - yAtual) > 4) {
+        if (grupoAtual.length) linhas.push(grupoAtual.map(i => i.str).join(' '));
+        grupoAtual = [item];
+        yAtual = item.y;
+      } else {
+        grupoAtual.push(item);
+      }
+    }
+    if (grupoAtual.length) linhas.push(grupoAtual.map(i => i.str).join(' '));
+    linhasGeral.push(...linhas.filter(Boolean));
+  }
+  return linhasGeral.join('\n');
+}
+
+// ── PARSER PRINCIPAL ────────────────────────────────────────────
+function extrairDadosPDF(texto) {
+  const L = texto.split('\n').map(s => s.trim()).filter(Boolean);
+  const d = { relatorio:'', os:'', forno:'', modelo:'', serie:'', pecas:[], obs_prev:'', data_levantamento:'', tecnico:'', status:'Em Aprovação' };
+
+  function linhaAntes(re) { const i=L.findIndex(l=>re.test(l)); return i>0?L[i-1]:''; }
+  function coletarAte(inicioRe, fimRe) {
+    const i=L.findIndex(l=>inicioRe.test(l)); if(i<0) return '';
+    const buf=[]; for(let j=i+1;j<L.length&&!fimRe.test(L[j]);j++) buf.push(L[j]);
+    return buf.join(' ').trim();
+  }
+
+  // ID do relatório — extrai do URL no cabeçalho do PDF
+  const relM = texto.match(/\/relatorio\/([a-f0-9\-]{36})/i);
+  if (relM) d.relatorio = relM[1];
+
+  // OS
+  const osM = texto.match(/\bOS\s+(\d{4,6})\b/);
+  if (osM) d.os = osM[1];
+
+  // Série — linha após "Nº de série" (pega a que está no bloco Vínculos)
+  for (let i=0; i<L.length-1; i++) {
+    if (/n[oº°]?\s*\.?\s*de\s*s[eé]rie/i.test(L[i]) && !d.serie) {
+      const v = (L[i+1]||'').replace(/\s*#\d+.*$/,'').trim();
+      if (v) { d.serie = v; break; }
+    }
+  }
+
+  // Tipo do equipamento → modelo base
+  const tipoIdx = L.findIndex(l => /tipo\s+do\s+equipamento/i.test(l));
+  if (tipoIdx>=0) d.modelo = (L[tipoIdx+1]||'').trim();
+
+  // Nome do equipamento: padrão "SCC WE 201 Gás #6 (PRODUÇÃO 1)"
+  // Procura em todas as linhas por padrão: letras+num+gas/elet + #N + (desc)
+  const equipM = texto.match(/([A-Z]{2,}\s+[A-Z]{2,}\s+\d+\s+[A-Za-záéíóúÁÉÍÓÚâãõ]+)\s+#(\d+)\s*[\(\[]\s*([^\)\]]+)\s*[\)\]]/i);
+  if (equipM) {
+    d.forno = `#${equipM[2]} - ${equipM[3].trim()}`;
+    d.modelo = equipM[1].trim() + (d.modelo ? ' - '+d.modelo : '');
+  } else {
+    // Fallback: iVario Pro XL #2 ou similar
+    const fm = texto.match(/([A-Za-z\s]+)\s+#(\d+)/);
+    const fm2 = texto.match(/#(\d+)\s*[\(\[]\s*([^\)\]]+)\s*[\)\]]/);
+    if (fm2) d.forno = `#${fm2[1]} - ${fm2[2].trim()}`;
+    else if (fm) d.forno = `#${fm[2]} - ${fm[1].trim()}`;
+  }
+
+  // Data do atendimento
+  const dataIdx = L.findIndex(l => /^data$/i.test(l));
+  if (dataIdx>=0) {
+    for (let i=dataIdx+1; i<=dataIdx+3; i++) {
+      const dm=(L[i]||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if (dm) { d.data_levantamento=`${dm[3]}-${dm[2]}-${dm[1]}`; break; }
+    }
+  }
+  if (!d.data_levantamento) {
+    const iniIdx = L.findIndex(l => /^in[ií]cio$/i.test(l));
+    if (iniIdx>=0) for (let i=iniIdx+1;i<=iniIdx+3;i++) {
+      const dm=(L[i]||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if(dm){d.data_levantamento=`${dm[3]}-${dm[2]}-${dm[1]}`;break;}
+    }
+  }
+  if (!d.data_levantamento) {
+    const dm=texto.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    if(dm) d.data_levantamento=`${dm[3]}-${dm[2]}-${dm[1]}`;
+  }
+
+  // Técnico — linha antes de "Colaborador responsável"
+  d.tecnico = linhaAntes(/colaborador\s+respons[aá]vel/i);
+
+  // Peças do checklist — linha ANTES de "Necessário troca" ou "Necessário a troca"
+  for (let i=1; i<L.length; i++) {
+    if (/necess[aá]rio\s+(a\s+)?troca/i.test(L[i])) {
+      const p = L[i-1];
+      // Ignora linhas que são cabeçalhos ou já incluídas
+      if (p && p.length>3 && !/^(ok|foto|verificaç|adesivo|limpeza|potenci|bordacha|campa|conect|botão|lâmpada|filtro|gaveta|ponteira|esguicho|entrada|reaperto|vedação|soquete|orçamento|observ|assina)/i.test(p) && !d.pecas.includes(p)) {
+        d.pecas.push(p);
+      }
+    }
+  }
+
+  // Peças do orçamento — coleta linhas após "Orçamento" até linha não-item
+  const orcIdx = L.findIndex(l => /^or[çc]amento$/i.test(l));
+  if (orcIdx>=0) {
+    for (let i=orcIdx+1; i<L.length; i++) {
+      const linha = L[i];
+      // Para quando chega em seção nova
+      if (/^(observa[çc]|assina|uma solu|reaperto|vedação|soquete)/i.test(linha)) break;
+      // Item de orçamento: começa com número ou é descrição de peça
+      if (linha.length > 3 && !d.pecas.includes(linha)) d.pecas.push(linha);
+    }
+  }
+
+  // Observações detalhadas
+  d.obs_prev = coletarAte(/observa[çc][oõ]es.*descrever/i, /assinatura|uma solu/i);
+  if (!d.obs_prev) d.obs_prev = coletarAte(/descri[çc][aã]o\s+da\s+conclus[aã]o/i, /garantias|v[íi]nculos|preventiva|assinatura/i);
+
+  return d;
+}
+
+// ── HANDLE FILE ─────────────────────────────────────────────────
+async function handleFile(file) {
+  if (!file) return;
+  document.getElementById('erroImport').style.display    = 'none';
+  document.getElementById('resultadoBox').style.display  = 'none';
+  document.getElementById('debugToggle').style.display   = 'none';
+  document.getElementById('debugBox').style.display      = 'none';
+  document.getElementById('btnConfirmar').style.display  = 'none';
+  document.getElementById('progressBar').style.display   = 'block';
+  document.getElementById('progressFill').style.width    = '10%';
+
+  try {
+    const buffer = await file.arrayBuffer();
+    document.getElementById('progressFill').style.width = '30%';
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    document.getElementById('progressFill').style.width = '60%';
+    const texto = await extrairTextoPDF(pdf);
+    document.getElementById('progressFill').style.width = '85%';
+    textoDebug = texto;
+    const dados = extrairDadosPDF(texto);
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('progressBar').style.display = 'none';
+
+    dadosImportados = dados;
+    mostrarResultado(dados);
+    document.getElementById('debugToggle').style.display = 'block';
+    document.getElementById('debugBox').textContent      = texto;
+  } catch(e) {
+    document.getElementById('progressBar').style.display = 'none';
+    mostrarErro('Erro ao ler o PDF: ' + e.message);
+    console.error(e);
+  }
+}
+
+function toggleDebug() {
+  const box = document.getElementById('debugBox');
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
+}
+
+function mostrarResultado(d) {
+  const pecasHtml = d.pecas.length
+    ? d.pecas.map(p=>`<span style="background:#c8e6c9;padding:2px 8px;border-radius:12px;margin:2px;display:inline-block">${p}</span>`).join(' ')
+    : '<span style="color:#888">nenhuma identificada automaticamente</span>';
+
+  document.getElementById('resultadoBox').innerHTML = `
+    <strong>✅ PDF lido! Verifique os dados antes de salvar:</strong>
+    <div class="grid2" style="margin-top:8px;">
+      <div class="item"><span class="lbl">OS:</span><span>${d.os||'<i style="color:#c62828">não encontrado</i>'}</span></div>
+      <div class="item"><span class="lbl">Forno:</span><span>${d.forno||'<i style="color:#c62828">não encontrado</i>'}</span></div>
+      <div class="item"><span class="lbl">Modelo:</span><span>${d.modelo||'—'}</span></div>
+      <div class="item"><span class="lbl">Série:</span><span>${d.serie||'—'}</span></div>
+      <div class="item"><span class="lbl">Técnico:</span><span>${d.tecnico||'—'}</span></div>
+      <div class="item"><span class="lbl">Data:</span><span>${d.data_levantamento ? fmtData(d.data_levantamento) : '—'}</span></div>
+    </div>
+    <div style="margin-top:8px;"><span class="lbl">Peças:</span> ${pecasHtml}</div>
+    ${d.obs_prev ? `<div style="margin-top:6px;font-size:0.8rem;color:#555">${d.obs_prev}</div>` : ''}`;
+  document.getElementById('resultadoBox').style.display = 'block';
+  document.getElementById('btnConfirmar').style.display = 'inline-block';
+}
+
+function mostrarErro(msg) {
+  const el = document.getElementById('erroImport');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function confirmarImport() {
+  if (!dadosImportados) return;
+  fecharImport();
+  editandoId = null; limparForm();
+  preencherForm(dadosImportados);
+  document.getElementById('modalTitulo').textContent = 'Revisar Dados Importados do PDF';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+// ── CRUD ───────────────────────────────────────────────────────
+function limparForm() {
+  ['f_relatorio','f_os','f_forno','f_tecnico','f_modelo','f_serie','f_pecas',
+   'f_obs_prev','f_data_levantamento','f_valor_orcamento','f_link_orcamento',
+   'f_obs_orcamento','f_trabalho','f_data_execucao'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f_conferencia').value = '';
+  document.getElementById('f_status').value = 'Levantamento';
+}
+
+function preencherForm(r) {
+  document.getElementById('f_relatorio').value         = r.relatorio||'';
+  document.getElementById('f_os').value                = r.os||'';
+  document.getElementById('f_forno').value             = r.forno||'';
+  document.getElementById('f_tecnico').value           = r.tecnico||'';
+  document.getElementById('f_modelo').value            = r.modelo||'';
+  document.getElementById('f_serie').value             = r.serie||'';
+  document.getElementById('f_pecas').value             = Array.isArray(r.pecas)?r.pecas.join('\n'):(r.pecas||'');
+  document.getElementById('f_obs_prev').value          = r.obs_prev||'';
+  document.getElementById('f_data_levantamento').value = r.data_levantamento||'';
+  document.getElementById('f_valor_orcamento').value   = r.valor_orcamento||'';
+  document.getElementById('f_link_orcamento').value    = r.link_orcamento||'';
+  document.getElementById('f_conferencia').value       = r.conferencia||'';
+  document.getElementById('f_obs_orcamento').value     = r.obs_orcamento||'';
+  document.getElementById('f_status').value            = r.status||'Levantamento';
+  document.getElementById('f_data_execucao').value     = r.data_execucao||'';
+  document.getElementById('f_trabalho').value          = r.trabalho||'';
+}
+
+function lerForm() {
+  const pr = document.getElementById('f_pecas').value.trim();
+  return {
+    relatorio:         document.getElementById('f_relatorio').value.trim(),
+    os:                document.getElementById('f_os').value.trim(),
+    forno:             document.getElementById('f_forno').value.trim(),
+    tecnico:           document.getElementById('f_tecnico').value.trim(),
+    modelo:            document.getElementById('f_modelo').value.trim(),
+    serie:             document.getElementById('f_serie').value.trim(),
+    pecas:             pr ? pr.split('\n').map(p=>p.trim()).filter(Boolean) : [],
+    obs_prev:          document.getElementById('f_obs_prev').value.trim(),
+    data_levantamento: document.getElementById('f_data_levantamento').value,
+    valor_orcamento:   document.getElementById('f_valor_orcamento').value,
+    link_orcamento:    document.getElementById('f_link_orcamento').value.trim(),
+    conferencia:       document.getElementById('f_conferencia').value,
+    obs_orcamento:     document.getElementById('f_obs_orcamento').value.trim(),
+    status:            document.getElementById('f_status').value,
+    data_execucao:     document.getElementById('f_data_execucao').value,
+    trabalho:          document.getElementById('f_trabalho').value.trim(),
+  };
+}
+
+function salvar() {
+  const reg = lerForm();
+  if (!reg.os || !reg.forno) { alert('Preencha pelo menos OS e Forno.'); return; }
+  reg.id = editandoId || Date.now().toString();
+  registros = editandoId ? registros.map(r=>r.id===editandoId?reg:r) : [...registros,reg];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
+  fecharModal(); renderTabela(); renderStats();
+}
+
+function excluir(id) {
+  if (!confirm('Excluir?')) return;
+  registros = registros.filter(r=>r.id!==id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
+  renderTabela(); renderStats();
+}
+
+function editar(id) {
+  const r = registros.find(r=>r.id===id); if (!r) return;
+  editandoId = id; preencherForm(r);
+  document.getElementById('modalTitulo').textContent = 'Editar Registro';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function abrirModal()  { editandoId=null; limparForm(); document.getElementById('modalTitulo').textContent='Novo Registro'; document.getElementById('modalOverlay').classList.add('open'); }
+function fecharModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+function abrirImport() {
+  dadosImportados=null; textoDebug='';
+  document.getElementById('fileInput').value='';
+  ['erroImport','resultadoBox','progressBar','debugBox','debugToggle'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('btnConfirmar').style.display='none';
+  document.getElementById('progressFill').style.width='0';
+  document.getElementById('modalImport').classList.add('open');
+}
+function fecharImport() { document.getElementById('modalImport').classList.remove('open'); }
+
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('modalOverlay'))fecharModal();});
+document.getElementById('modalImport').addEventListener('click', e=>{if(e.target===document.getElementById('modalImport'))fecharImport();});
+
+// ── RENDER ─────────────────────────────────────────────────────
+function calcDias(d1,d2){if(!d1)return null;return Math.floor((new Date(d2||new Date())-new Date(d1))/86400000);}
+function fmtData(d){if(!d)return '—';const[y,m,dia]=d.split('-');return`${dia}/${m}/${y}`;}
+function badgeStatus(s){const m={'Levantamento':'badge-orange','Em Aprovação':'badge-blue','Aprovado':'badge-purple','Executado':'badge-green','Reprovado':'badge-red'};return`<span class="badge ${m[s]||'badge-orange'}">${s}</span>`;}
+
+function renderTabela(){
+  const fs=document.getElementById('filtroStatus').value;
+  const ff=document.getElementById('filtroForno').value.toLowerCase();
+  const lista=registros.filter(r=>{
+    if(fs&&r.status!==fs)return false;
+    if(ff&&![r.forno,r.os,r.modelo,r.relatorio].some(v=>(v||'').toLowerCase().includes(ff)))return false;
+    return true;
+  });
+  document.getElementById('countLabel').textContent=`${lista.length} registro${lista.length!==1?'s':''}`;
+  const tbody=document.getElementById('tabelaBody');
+  if(!lista.length){tbody.innerHTML='';document.getElementById('noData').style.display='block';return;}
+  document.getElementById('noData').style.display='none';
+  tbody.innerHTML=lista.map(r=>{
+    const dT=calcDias(r.data_levantamento,r.data_execucao);
+    const dA=calcDias(r.data_levantamento,null);
+    let dH='—';
+    if(r.status==='Executado'&&dT!==null){const c=dT<=7?'days-ok':dT<=30?'days-warn':'days-bad';dH=`<span class="days-badge ${c}">${dT}d</span><br><small style="color:#aaa">levant.→exec.</small>`;}
+    else if(r.data_levantamento&&r.status!=='Executado'){const c=dA<=7?'days-ok':dA<=30?'days-warn':'days-bad';dH=`<span class="days-badge ${c}">${dA}d</span><br><small style="color:#aaa">em aberto</small>`;}
+    const pecas = r.pecas||[];
+    const pH = pecas.length
+      ? `<div>
+           <div class="pecas-toggle" onclick="togglePecas('p${r.id}')">
+             <span class="arr" id="arr_${r.id}">▶</span>
+             <span>${pecas.length} peça${pecas.length>1?'s':''}</span>
+           </div>
+           <div class="pecas-body" id="p${r.id}">
+             ${pecas.map(p=>`<div class="peca-item"><div class="dot"></div>${p}</div>`).join('')}
+           </div>
+         </div>`
+      : '<span style="color:#aaa">—</span>';
+    const cM={'Sim':'✅','Parcial':'⚠️','Não':'❌','':'—'};
+    const oH=r.valor_orcamento?`R$ ${parseFloat(r.valor_orcamento).toLocaleString('pt-BR',{minimumFractionDigits:2})}<br><small>${cM[r.conferencia]||'—'}</small>${r.link_orcamento?`<br><a href="${r.link_orcamento}" class="orcamento-link" target="_blank">Ver</a>`:''}` :'<span style="color:#aaa">Sem orçamento</span>';
+    const obsHtml = r.obs_prev
+      ? `<div class="obs-toggle" onclick="toggleObs('ob${r.id}')">
+           <span id="oarr_${r.id}" style="transition:transform 0.2s;display:inline-block">▶</span>
+           <span>Ver observações</span>
+         </div>
+         <div class="obs-body" id="ob${r.id}">${r.obs_prev}</div>`
+      : '';
+    return`<tr>
+      <td>${r.relatorio?`<small style="color:#aaa">${r.relatorio.slice(0,8)}…</small><br>`:''}
+        <strong>OS ${r.os}</strong><br>
+        <span style="color:#1a237e;font-weight:600">${r.forno}</span><br>
+        <small style="color:#888">${r.modelo||''}</small>
+        ${r.tecnico?`<br><small style="color:#aaa">${r.tecnico}</small>`:''}
+        ${obsHtml}
+      </td>
+      <td>${pH}</td><td>${oH}</td>
+      <td>${badgeStatus(r.status)}${r.trabalho?`<br><small style="color:#555;margin-top:4px;display:block">${r.trabalho.slice(0,60)}${r.trabalho.length>60?'…':''}</small>`:''}</td>
+      <td>${fmtData(r.data_levantamento)}</td><td>${fmtData(r.data_execucao)}</td><td>${dH}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="editar('${r.id}')" style="margin-bottom:4px">Editar</button><br>
+        <button class="btn btn-danger" onclick="excluir('${r.id}')">Excluir</button>
+      </td></tr>`;
+  }).join('');
+}
+
+function renderStats(){
+  const t=registros.length,ab=registros.filter(r=>r.status!=='Executado'&&r.status!=='Reprovado').length;
+  const ap=registros.filter(r=>r.status==='Aprovado').length,ex=registros.filter(r=>r.status==='Executado').length;
+  const tm=registros.filter(r=>r.status==='Executado'&&r.data_levantamento&&r.data_execucao).map(r=>calcDias(r.data_levantamento,r.data_execucao));
+  const md=tm.length?Math.round(tm.reduce((a,b)=>a+b,0)/tm.length):null;
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat-card"><div class="num">${t}</div><div class="lbl">Total</div></div>
+    <div class="stat-card"><div class="num" style="color:#e65100">${ab}</div><div class="lbl">Em aberto</div></div>
+    <div class="stat-card"><div class="num" style="color:#4a148c">${ap}</div><div class="lbl">Aprovados</div></div>
+    <div class="stat-card"><div class="num" style="color:#2e7d32">${ex}</div><div class="lbl">Executados</div></div>
+    <div class="stat-card"><div class="num" style="color:#0d47a1">${md!==null?md+'d':'—'}</div><div class="lbl">Tempo médio</div></div>`;
+}
+
+// Dados iniciais — adiciona registros que ainda não existem (verifica por OS)
+const seed = [
+  {
+    id:'1', relatorio:'abcd481d-13d2-42b3-8633-9b1e9fc82f1e',
+    os:'14894', forno:'#7 - Produção 1', modelo:'Rational SCC WE 202 Gás',
+    serie:'G22SI19022730950',
+    pecas:['Eletrodo do vapor','Borracha do carrinho'],
+    obs_prev:'Realizada manutenção preventiva. Necessário trocar eletrodo do vapor e borracha do carrinho.',
+    data_levantamento:'2026-06-23', tecnico:'Radeione Gomes',
+    valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'',
+    status:'Em Aprovação', data_execucao:'', trabalho:''
+  },
+  {
+    id:'3', relatorio:'5b16c9a9-2f01-48a0-b2b7-a0dd6821b369',
+    os:'14890', forno:'#6 - PRODUÇÃO 1', modelo:'Rational SCC WE 201 Gás',
+    serie:'G21SI17032581657',
+    pecas:[
+      'Borracha do carrinho','Filtro de ar','Gaveta do care',
+      'Ponteira do esguicho','Esguicho',
+      '1 trocador de calor inferior','1 queimador inferior',
+      '2 eletrodo ar quente (74.00.034)','2 eletrodo terra (74.00.873)',
+      '2 filtros de ar (40.02.684)','1 sensor de núcleo',
+      '1 acoplamento M4 (8354.1320)','1 mangueira dreno caldeira','1 gaveta Care'
+    ],
+    obs_prev:'Realizada manutenção preventiva. Trocador de calor inferior estourado e queimador danificado por conta do produto. Parte do esguicho eliminada, gaveta Care quebrada. Necessário troca do queimador e trocador de calor inferior. Equipamento apresenta falhas e estouros.',
+    data_levantamento:'2026-06-23', tecnico:'Valdir',
+    valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'',
+    status:'Em Aprovação', data_execucao:'', trabalho:''
+  },
+  {
+    id:'4', relatorio:'4495cc04-5c0b-4449-8324-42178765a873',
+    os:'14893', forno:'#4 - PRODUÇÃO 1', modelo:'Rational SCC WE 201 Elétrico',
+    serie:'E21SI18032655734',
+    pecas:[
+      'Borracha da porta','Borracha do carrinho','Filtro de ar','Esguicho',
+      '02 conjunto de resistências 220V (87.01.067)',
+      '01 vidro duplo empenado (24.05.227S)',
+      '01 esguicho completo c/ bolha na mangueira (50.00.176P)',
+      '01 sensor de núcleo amassado (40.02.100P)',
+      '01 acoplamento da bomba (8354.1320)',
+      '01 mangote da caldeira (44.01.223P)',
+      '01 borracha de porta 201 (20.00.398P)',
+      '01 borracha encosto carrinho 201 (87.01.544S)',
+      '01 mangote tubo de respiro (54.01.045P)',
+      '01 descalcificante'
+    ],
+    obs_prev:'Revisão geral realizada. Resistência inferior e superior com vazamento no filamento. Borracha de encosto do carrinho rasgada. Sensor de núcleo amassado (dentro da leitura). Vidro duplo empenado. Esguicho com bolha na mangueira. Teste de solenóides e lavagem OK.',
+    data_levantamento:'2026-06-18', tecnico:'Felipe Vieira',
+    valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'',
+    status:'Em Aprovação', data_execucao:'', trabalho:''
+  },
+  {
+    id:'8', relatorio:'e2a13cb7-4767-4f45-b27a-505c60e92c9c',
+    os:'14853', forno:'#7 - PRODUÇÃO 1', modelo:'Rational SCC WE 202 Gás',
+    serie:'G22SI19022730950',
+    pecas:[
+      'Borracha da porta (checklist)',
+      'Borracha do carrinho (checklist)',
+      '1 borracha de vedação da porta — cod: 20.00.399P',
+      '1 borracha de vedação do carrinho — cod: 87.01.545S',
+      '1 container do care control — cod: 56.00.507S'
+    ],
+    obs_prev:'Avaliação geral realizada — componentes, mangueiras e vedações verificados. Borracha de vedação da porta avariada causando vazamento de vapor e calor. Borracha de vedação do carrinho avariada causando vazamento de vapor e calor. Container do care com espigão da mangueira de entrada de água quebrado. Limpeza dos filtros de ar realizada. ATENÇÃO: Pressão Dinâmica 40 mBar (muito acima do range 18-25 mBar). ORÇ 15197 aguardando aprovação.',
+    data_levantamento:'2026-05-19', tecnico:'Wilson Prudêncio',
+    valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'ORÇ 15197 — aguardando aprovação',
+    status:'Em Aprovação', data_execucao:'', trabalho:'PEÇA JÁ TROCADA: 1 conjunto do vidro interno — cod: 24.05.228S (estoque do cliente). Testado e ok.'
+  },
+  {
+    id:'6', relatorio:'0e3a6708-1d1b-4df7-971e-653218e632d6',
+    os:'14898', forno:'#1 - PRODUÇÃO 2', modelo:'Rational iCOMBI PRO 202 Gás',
+    serie:'E22SJ20102850503',
+    pecas:[
+      'Borracha do carrinho (checklist)',
+      '01 mangueira do gerador de vapor',
+      '01 borracha de encosto do carrinho 201',
+      '01 acoplamento da bomba'
+    ],
+    obs_prev:'Manutenção preventiva realizada. ATENÇÃO: Pressão Dinâmica medida em 32 mbar (acima do range 18-25 mbar) e Pressão Estática 38 mbar — requer acompanhamento. Peças orçadas sem código informado.',
+    data_levantamento:'2026-06-17', tecnico:'Felipe Vieira',
+    valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'',
+    status:'Em Aprovação', data_execucao:'', trabalho:''
+  },
+  {
+    id:'7', relatorio:'47d8ac84-7e18-4fd9-9159-0b4c2a19ec52',
+    os:'14895', forno:'#2 - PRODUÇÃO 1', modelo:'Rational SCC WE 201 Gás',
+    serie:'G21SI17062599488',
+    pecas:[
+      'Borracha do carrinho (checklist)',
+      'Ponteira do esguicho (checklist)',
+      '01 acoplamento da bomba — cod: 8354.1320',
+      '01 mangueira do gerador de vapor — cod: 44.01.229P',
+      '01 mangueira do tubo de respiro — cod: 54.01.045P',
+      '01 borracha do encosto do carrinho — cod: 87.01.544S'
+    ],
+    obs_prev:'Manutenção preventiva realizada. ATENÇÃO: Pressão Dinâmica 32 mbar e Estática 36 mbar (acima do range 18-25 mbar). Desmontado eletrodos e realizada limpeza. Calcário identificado na caldeira — limpeza feita e caldeira resetada para novo enchimento. Orçamento preventivo gerado para as peças pendentes.',
+    data_levantamento:'2026-06-17', tecnico:'Felipe Vieira',
+    valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'',
+    status:'Em Aprovação', data_execucao:'', trabalho:'PEÇAS JÁ TROCADAS (aprovadas por Hudin/gerente): 01 termostato de trabalho 365°C — cod: 40.01.482S | 01 borracha de porta 201 — cod: 20.00.898P'
+  },
+  {
+    id:'5', relatorio:'27fb4789-0ba8-41fd-aed3-e576cdb2dce2',
+    os:'14897', forno:'#2 - iVario Pro XL', modelo:'Rational - iVario Pro XL',
+    serie:'E31PK25088094073',
+    pecas:[
+      '01 motor de abertura do dreno e travamento tampa — cod: 87.01.564S',
+      '01 cabo de comunicação alimentação conjunto de pressão com Diodo — cod: 40.08.243P',
+      '01 placa principal — cod: 87.01.860S'
+    ],
+    obs_prev:'Problema: equipamento apresentando falha na abertura do dreno. Serviço realizado: limpeza e lubrificação no sistema de abertura do dreno; limpeza no sistema de pressão; testado processo de funcionamento e outras funções. Após testes, falha persistiu — equipamento não reconhece abertura do dreno, erro no motor de acionamento da válvula dreno. Necessário orçamento. Peças preventivas também deverão ser trazidas.',
+    data_levantamento:'2026-06-18', tecnico:'Felipe Vieira',
+    valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'',
+    status:'Em Aprovação', data_execucao:'', trabalho:''
+  },
+  {
+    id:'2', relatorio:'fa3938ac-07f2-41a7-b1a3-59ee20ff9a02',
+    os:'14967', forno:'#2 - iVario Pro XL', modelo:'Rational - iVario Pro XL',
+    serie:'E31PK25088094073',
+    pecas:['1 flauta pressostato','1 jogo de cabo pressostato','1 diodo'],
+    obs_prev:'Equipamento apresentando erro na pressão. Realizados testes no sistema de pressão — sem falha identificada durante os testes. Constatado cabos antigos com possível falha intermitente. Será solicitada troca da flauta pressostato, jogo de cabos e diodo junto à Rational. Equipamento em garantia.',
+    data_levantamento:'2026-06-23', tecnico:'Valdir',
+    valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'',
+    status:'Em Aprovação', data_execucao:'', trabalho:''
+  },
+  // ===== NOVOS REGISTROS — PDFs rl03 a rl54 =====
+  {id:'9',  relatorio:'', os:'15664', forno:'SCC WE (não identificado)', modelo:'Rational SCC WE', serie:'',
+   pecas:[], obs_prev:'ORÇ 15196 — borracha de vedação da porta 20.00.399P aguardando aprovação.',
+   data_levantamento:'2026-05-15', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'ORÇ 15196', status:'Em Aprovação', data_execucao:'', trabalho:''},
+  {id:'10', relatorio:'', os:'14852', forno:'iVario Pro XL #06', modelo:'Rational iVario Pro XL', serie:'E31VK20118050722',
+   pecas:['Ajuste mecânico realizado'], obs_prev:'Avaliação geral realizada. Ajuste mecânico realizado.',
+   data_levantamento:'2026-05-14', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Executado', data_execucao:'2026-05-14', trabalho:''},
+  {id:'11', relatorio:'', os:'14849', forno:'iVario Pro XL #5', modelo:'Rational iVario Pro XL', serie:'E31PK25098095276',
+   pecas:['1 placa PCB 42.00.251P (GARANTIA)','1 borracha do dreno'],
+   obs_prev:'Placa PCB trocada em garantia. Borracha do dreno substituída.',
+   data_levantamento:'2026-05-12', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Executado', data_execucao:'2026-05-12', trabalho:''},
+  {id:'12', relatorio:'', os:'14848', forno:'SCC WE 201 Gás #1 (PRODUÇÃO 1)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI18032653951',
+   pecas:['2 retentores do motor 22.00.985P','2 eletrodos terra 74.00.873P','2 eletrodos ignição 74.00.034S','1 sensor B2 54.01.253P','1 esguicho 50.00.176P'],
+   obs_prev:'Peças trocadas: 2 retentores motor, 2 eletrodos terra, 2 eletrodos ignição, sensor B2, esguicho. ORÇ pendente: cabo lâmpada 40.03.532, ponteira esguicho 50.00.282S.',
+   data_levantamento:'2026-05-07', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Parcial', data_execucao:'2026-05-07', trabalho:''},
+  {id:'13', relatorio:'', os:'15610', forno:'VCC 311 Elétrico #04', modelo:'Rational VCC 311', serie:'E31VI19068040915',
+   pecas:['1 potenciômetro 40.07.493P'], obs_prev:'Potenciômetro substituído. Atendimento solucionado.',
+   data_levantamento:'2026-05-06', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'721.20', link_orcamento:'', conferencia:'✓', obs_orcamento:'NF 16297 (2026-05-08)', status:'Executado', data_execucao:'2026-05-06', trabalho:'NF 16297 — R$721,20 — gerador de pulso 40.07.493P (potenciômetro) confirmado e instalado.'},
+  {id:'14', relatorio:'', os:'14846', forno:'VCC 311 Elétrico #04', modelo:'Rational VCC 311', serie:'E31VI19068040915',
+   pecas:[], obs_prev:'ORÇ 15114 — 1 filtro da tampa 24.02.368P aguardando aprovação.',
+   data_levantamento:'2026-05-05', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'ORÇ 15114', status:'Em Aprovação', data_execucao:'', trabalho:''},
+  {id:'15', relatorio:'', os:'14845', forno:'iVario Pro XL #5', modelo:'Rational iVario Pro XL', serie:'E31PK25098095276',
+   pecas:[], obs_prev:'1 placa PCB 42.00.251P em garantia — aguardando peça do fabricante.',
+   data_levantamento:'2026-05-05', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Aguardando peça', data_execucao:'', trabalho:''},
+  {id:'16', relatorio:'', os:'14819', forno:'SCC WE 201 Gás (Cozinha Teste)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI17072602995',
+   pecas:[], obs_prev:'Manutenção preventiva finalizada. Todos os componentes OK.',
+   data_levantamento:'2026-04-30', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Preventiva OK', data_execucao:'2026-04-30', trabalho:''},
+  {id:'17', relatorio:'', os:'14818', forno:'iVario Pro XL #5 (tag #07)', modelo:'Rational iVario Pro XL', serie:'E31PK25098095276',
+   pecas:['1 placa PCB 42.00.251P (defeito identificado)'],
+   obs_prev:'Placa PCB com defeito — necessário orçamento para nova placa.',
+   data_levantamento:'2026-04-30', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'18', relatorio:'', os:'14555', forno:'(não identificado)', modelo:'', serie:'',
+   pecas:[], obs_prev:'Preventiva finalizada.',
+   data_levantamento:'2026-03-31', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Preventiva OK', data_execucao:'2026-03-31', trabalho:''},
+  {id:'19', relatorio:'', os:'14117', forno:'SCC WE 202 Elétrico #5 (PRODUÇÃO 1)', modelo:'Rational SCC WE 202 Elétrico', serie:'E21SI17102624964',
+   pecas:['1 sensor de núcleo 40.02.100P'],
+   obs_prev:'Sensor de núcleo trocado. ORÇ pendente: borracha carrinho 87.01.544S, sensor B2 54.01.254P, esguicho 50.00.176, ponteira 50.00.282S.',
+   data_levantamento:'2026-03-26', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'1185.05', link_orcamento:'', conferencia:'?', obs_orcamento:'NF 16102 (2026-04-06) — confirmar associação', status:'Parcial', data_execucao:'2026-03-26', trabalho:'Provável NF 16102 — R$1.185,05 — sensor de núcleo 40.02.100P (NF sem referência de OS — confirmar com Assistec). Itens pendentes: borracha carrinho, sensor B2, esguicho, ponteira.'},
+  {id:'20', relatorio:'', os:'14307', forno:'SCC WE 201 Gás #6 (PRODUÇÃO 1)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI17032581657',
+   pecas:[], obs_prev:'ORÇ pendente: sensor B2 54.01.253P, esguicho 50.00.176P, 2 eletrodos ignição 74.00.034S, 2 eletrodos terra 74.00.873P.',
+   data_levantamento:'2026-03-24', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Em Aprovação', data_execucao:'', trabalho:''},
+  {id:'21', relatorio:'', os:'14313', forno:'(não identificado — relatório incompleto)', modelo:'', serie:'',
+   pecas:[], obs_prev:'',
+   data_levantamento:'2026-03-24', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'', data_execucao:'', trabalho:''},
+  {id:'22', relatorio:'', os:'12882', forno:'SCC WE 201 Gás #2 (PRODUÇÃO 1)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI17062599488',
+   pecas:[], obs_prev:'ORÇ pendente: borracha carrinho 87.01.544S, lâmpada 3024.0201P.',
+   data_levantamento:'2026-03-20', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Em Aprovação', data_execucao:'', trabalho:''},
+  {id:'23', relatorio:'', os:'11680', forno:'SCC WE 201 Gás #1 (PRODUÇÃO 1)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI18032653951',
+   pecas:[], obs_prev:'ORÇ pendente: lâmpada 3024.0201P, borracha carrinho 87.01.544S, cabo led 40.05.296P, sensor B2 54.01.253P, 2 retentores motor 20.00.985P, esguicho 50.00.176P.',
+   data_levantamento:'2026-03-20', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Em Aprovação', data_execucao:'', trabalho:''},
+  {id:'24', relatorio:'', os:'12877', forno:'SCC WE 201 Gás (Cozinha Teste)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI17072602995',
+   pecas:['1 caixa de ignição 70.01.530S'], obs_prev:'Caixa de ignição substituída. Atendimento finalizado.',
+   data_levantamento:'2026-03-19', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Executado', data_execucao:'2026-03-19', trabalho:''},
+  {id:'25', relatorio:'', os:'12876', forno:'SCC WE 202 Elétrico #5 (PRODUÇÃO 1)', modelo:'Rational SCC WE 202 Elétrico', serie:'E22SI17102624964',
+   pecas:[], obs_prev:'ORÇ pendente: borracha carrinho 87.01.545S, suporte porta 24.00.133P, parafusos/porcas pop nut, suporte base porta 24.03.359P, acabamento porta 24.03.391P, cabo led 40.05.296P, esguicho 50.00.176P, ponteira 50.00.282S, sensor B2 54.01.254.',
+   data_levantamento:'2026-03-19', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Em Aprovação', data_execucao:'', trabalho:''},
+  {id:'26', relatorio:'', os:'11923', forno:'SCC WE 201 Elétrico #4 (PRODUÇÃO 1)', modelo:'Rational SCC WE 201 Elétrico', serie:'E21SI18032655734',
+   pecas:[], obs_prev:'ORÇ pendente: 2 cabos do led 40.05.296P.',
+   data_levantamento:'2026-03-12', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Em Aprovação', data_execucao:'', trabalho:''},
+  {id:'27', relatorio:'', os:'11915', forno:'VCC 311 Elétrico #3', modelo:'Rational VCC 311', serie:'E31VI19068040909',
+   pecas:['1 relé de estado sólido 40.00.453P'], obs_prev:'Relé substituído. ORÇ pendente: placa de aquecimento.',
+   data_levantamento:'2026-03-12', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'797.72', link_orcamento:'', conferencia:'✓', obs_orcamento:'NF 16035 (2026-03-18)', status:'Parcial', data_execucao:'2026-03-12', trabalho:'NF 16035 — R$797,72 — relé de estado sólido 40.00.453P confirmado e instalado. Placa de aquecimento ainda pendente de orçamento.'},
+  {id:'28', relatorio:'', os:'12874', forno:'iVario Pro XL #2 (tag #04)', modelo:'Rational iVario Pro XL', serie:'E31PK25088094073',
+   pecas:[], obs_prev:'ORÇ pendente: 1 SD CARD 42.00.359P.',
+   data_levantamento:'2026-03-10', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'29', relatorio:'f6ddaf61-c5f0-41d6-9e9d-c53b0d72ba05', os:'11681', forno:'iVario Pro XL #07 (Produção 2)', modelo:'Rational iVario Pro XL', serie:'E31VK20128051452',
+   pecas:['1 kit elemento de aquecimento 87.00.674'],
+   obs_prev:'Equipamento com falha no aquecimento (Produção 2). Avaliação geral realizada — uma das placas de aquecimento queimada causando deficiência no aquecimento. Necessário orçamento para kit elemento de aquecimento 87.00.674.',
+   data_levantamento:'2026-03-06', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'30', relatorio:'', os:'11130', forno:'iVario Pro XL (instalação)', modelo:'Rational iVario Pro XL', serie:'',
+   pecas:[], obs_prev:'Instalação finalizada.',
+   data_levantamento:'2026-03-06', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Executado', data_execucao:'2026-03-06', trabalho:''},
+  {id:'31', relatorio:'', os:'11677', forno:'SCC WE 202 Gás #7 (PRODUÇÃO 1)', modelo:'Rational SCC WE 202 Gás', serie:'G22SI19022730950',
+   pecas:[], obs_prev:'ORÇ pendente: cabo led 40.05.296P, cabo led 40.05.298, container care 56.00.507S, borracha carrinho 87.01.545S, door catch 24.01.351P, door lock 24.03.195P.',
+   data_levantamento:'2026-03-03', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Em Aprovação', data_execucao:'', trabalho:''},
+  {id:'32', relatorio:'', os:'11129', forno:'VCC 112L (Salgados e Doces)', modelo:'Rational VCC 112L', serie:'E13VJ18078034996',
+   pecas:[], obs_prev:'ORÇ pendente: 2 filtros de sucção 24.02.368.',
+   data_levantamento:'2026-02-27', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'33', relatorio:'', os:'11122', forno:'iVario Pro XL #06', modelo:'Rational iVario Pro XL', serie:'E31VK20118050722',
+   pecas:[], obs_prev:'ORÇ pendente: 1 filtro de sucção da tampa 24.04.054P.',
+   data_levantamento:'2026-02-27', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'34', relatorio:'', os:'14601', forno:'iVario Pro XL #07', modelo:'Rational iVario Pro XL', serie:'E31VK20128051452',
+   pecas:[], obs_prev:'ORÇ pendente: 1 filtro sucção tampa 24.04.054P, 1 tampa USB 16.03.878P.',
+   data_levantamento:'2026-02-27', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'35', relatorio:'', os:'14312', forno:'SCC WE 201 Elétrico #4 (PRODUÇÃO 1)', modelo:'Rational SCC WE 201 Elétrico', serie:'E21SI18032655734',
+   pecas:['1 protetor térmico do gabinete 365° 40.01.482S'],
+   obs_prev:'Turbina superior havia soltado do eixo (corrigido pela manutenção do cliente). Técnico trocou o térmico por prevenção. Preventiva finalizada.',
+   data_levantamento:'2026-02-26', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'558.86', link_orcamento:'', conferencia:'✓', obs_orcamento:'NF 16069 (2026-03-24)', status:'Executado', data_execucao:'2026-02-26', trabalho:'NF 16069 — R$558,86 — protetor térmico do gabinete 365° 40.01.482S confirmado e instalado.'},
+  {id:'36', relatorio:'', os:'14118', forno:'SCC WE 202 Elétrico #5 (PRODUÇÃO 1)', modelo:'Rational SCC WE 202 Elétrico', serie:'E22SI17102624964',
+   pecas:[], obs_prev:'ORÇ pendente: borracha carrinho 87.01.545S, ponteira 50.00.282S, esguicho 50.00.176P.',
+   data_levantamento:'2026-02-26', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Em Aprovação', data_execucao:'', trabalho:''},
+  {id:'37', relatorio:'', os:'14314', forno:'SCC WE 201 Gás (Cozinha Teste)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI17072602995',
+   pecas:[], obs_prev:'Manutenção preventiva finalizada. Todos os componentes OK.',
+   data_levantamento:'2026-02-25', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Preventiva OK', data_execucao:'2026-02-25', trabalho:''},
+  {id:'38', relatorio:'', os:'14304', forno:'VCC 311 Elétrico #3', modelo:'Rational VCC 311', serie:'E31VI19068040909',
+   pecas:['1 relé de estado sólido 40.00.453P','1 borracha de vedação da tampa do dreno 20.00.993'],
+   obs_prev:'Relé de estado sólido colado causando aquecimento sem acionamento. Borracha do dreno trocada. Solucionado na primeira visita.',
+   data_levantamento:'2026-02-23', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'1250.43', link_orcamento:'', conferencia:'✓', obs_orcamento:'NF 16007 (2026-03-12)', status:'Executado', data_execucao:'2026-02-23', trabalho:'NF 16007 — R$1.250,43 — relé estado sólido 40.00.453P + junta vedação tampa dreno 20.00.993 confirmados e instalados.'},
+  {id:'39', relatorio:'', os:'14113', forno:'SCC WE 201 Elétrico #4 (PRODUÇÃO 1)', modelo:'Rational SCC WE 201 Elétrico', serie:'E21SI18032655734',
+   pecas:['1 borracha de vedação do carrinho 24.04.796P'],
+   obs_prev:'Borracha de vedação do carrinho avariada — substituída. Manutenção preventiva finalizada.',
+   data_levantamento:'2026-02-10', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'309.55', link_orcamento:'', conferencia:'✓', obs_orcamento:'NF 16009 (2026-03-12)', status:'Executado', data_execucao:'2026-02-10', trabalho:'NF 16009 — R$309,55 — borracha do carrinho 24.04.796P confirmada e instalada.'},
+  {id:'40', relatorio:'ce05b6ea-d298-4510-ae28-8a5985cf628b', os:'14310', forno:'SCC WE 201 Gás #6 (PRODUÇÃO 1)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI17032581657',
+   pecas:['1 borracha de vedação da porta 24.04.796','1 eletrodo de ignição do gerador de vapor 87.01.346'],
+   obs_prev:'Eletrodo de ignição do gerador de vapor avariado — substituído. Borracha de vedação da porta rasgada — substituída. ORÇ pendente: 1 conjunto de esguicho 50.00.176P (avariado, aguarda aprovação).',
+   data_levantamento:'2026-02-10', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'1073.50', link_orcamento:'', conferencia:'✓', obs_orcamento:'NF 16006 (2026-03-12)', status:'Parcial', data_execucao:'2026-02-10', trabalho:'NF 16006 — R$1.073,50 — borracha do carrinho 24.04.796P + eletrodo ignição vapor 87.01.346 confirmados. Esguicho 50.00.176P ainda pendente de aprovação.'},
+  {id:'41', relatorio:'76ea19b5-cb8f-4883-b388-21f191c6d62b', os:'14309', forno:'SCC WE 202 Gás #3 (PRODUÇÃO 1)', modelo:'Rational SCC WE 202 Gás', serie:'G22SI18042658626',
+   pecas:['1 borracha de vedação da porta 20.00.399P','1 borracha de vedação do carrinho 24.04.797P','2 queimadores especiais 87.01.991S'],
+   obs_prev:'Borrachas e queimadores substituídos. Análise de gás e calibração de umidade realizados. Manutenção finalizada.',
+   data_levantamento:'2026-02-05', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'8994.14', link_orcamento:'', conferencia:'✓', obs_orcamento:'NF 16068 (2026-03-24)', status:'Executado', data_execucao:'2026-02-05', trabalho:'NF 16068 — R$8.994,14 — 2 queimadores especiais 87.01.991S + borracha de porta 20.00.399P + borracha de carrinho 24.04.797P confirmados e instalados.'},
+  {id:'42', relatorio:'5ae0ee6e-8e09-4a25-8cea-0f3edf55d600', os:'14116', forno:'iVario Pro XL #06', modelo:'Rational iVario Pro XL', serie:'E31VK20118050722',
+   pecas:[], obs_prev:'Tensão de entrada 196V (abaixo do nominal 220V) — causa falha no aquecimento. Filtro de sucção da tampa ausente. ORÇ: 1 respiro da tampa 24.04.054P.',
+   data_levantamento:'2026-02-04', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'43', relatorio:'683d3ed9-f171-425d-890e-5b6c83a2e4ef', os:'14308', forno:'iVario Pro XL #2', modelo:'Rational iVario Pro XL', serie:'E31PK25088094073',
+   pecas:['1 placa PCB 42.00.251P (GARANTIA FABRICANTE)'],
+   obs_prev:'Placa PCB trocada em garantia. Superaquecimento causava desligamento repentino. Placa nova (versão antiga) instalada. Equipamento liberado para operação.',
+   data_levantamento:'2026-02-04', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Executado', data_execucao:'2026-02-04', trabalho:''},
+  {id:'44', relatorio:'25f0febd-1431-435e-aff1-1207d352826d', os:'14120', forno:'(não identificado — vínculos sem carregar)', modelo:'', serie:'',
+   pecas:[], obs_prev:'Manutenção finalizada.',
+   data_levantamento:'2026-01-27', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Executado', data_execucao:'2026-01-27', trabalho:''},
+  {id:'45', relatorio:'05c5f747-b2de-4aae-a4ec-e12e32263229', os:'13928', forno:'VCC 311 Elétrico #3', modelo:'Rational VCC 311', serie:'E31VI19068040909',
+   pecas:[], obs_prev:'5 placas de aquecimento queimadas — baixa eficiência. ORÇ: 5 elementos de aquecimento 87.00.586.',
+   data_levantamento:'2026-01-27', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'46', relatorio:'cbefe39d-7e87-4c79-9e1b-1684a59be5ba', os:'13931', forno:'SCC WE 201 Gás (Cozinha Teste)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI17072602995',
+   pecas:[], obs_prev:'Oxidação nos eletrodos do ar quente — limpos e ajustados. Testes nos 3 queimadores realizados. Clean jet e análise de gás realizados. Preventiva finalizada.',
+   data_levantamento:'2026-01-23', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Preventiva OK', data_execucao:'2026-01-23', trabalho:''},
+  {id:'47', relatorio:'bde9efe2-9c60-4291-9de0-2b4238c00326', os:'14114', forno:'SCC WE 201 Gás (Cozinha Teste)', modelo:'Rational SCC WE 201 Gás', serie:'G21SI17072602995',
+   pecas:[], obs_prev:'Nenhuma falha identificada. Reset de gás pode ter ocorrido por oscilação de pressão na rede. Preventiva finalizada.',
+   data_levantamento:'2026-01-20', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Preventiva OK', data_execucao:'2026-01-20', trabalho:''},
+  {id:'48', relatorio:'6c8129fd-bf6d-4c5c-9564-d9ef0ad49e45', os:'14111', forno:'SCC WE 202 Gás #7 (PRODUÇÃO 1)', modelo:'Rational SCC WE 202 Gás', serie:'G22SI19022730950',
+   pecas:[], obs_prev:'Vidro interno com ferragens descoladas — coladas pela manutenção do cliente. ORÇ: 1 conjunto de vidraças 24.02.228S, 1 door catch 24.01.351P.',
+   data_levantamento:'2026-01-16', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'49', relatorio:'da99c6bb-e1bd-4a9a-bcf3-50cca5f66b52', os:'14110', forno:'iVario Pro XL #01', modelo:'Rational iVario Pro XL', serie:'E31PK25078093665',
+   pecas:[], obs_prev:'Superaquecimento na placa CPU causando desligamento repentino. ORÇ: 1 cooler de resfriamento 87.01.876S.',
+   data_levantamento:'2026-01-13', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Necessário orçamento', data_execucao:'', trabalho:''},
+  {id:'50', relatorio:'343f8164-4161-4eb9-bf46-2dd9286d7135', os:'14108', forno:'iVario Pro XL (vínculos sem carregar)', modelo:'Rational iVario Pro XL', serie:'',
+   pecas:[], obs_prev:'Calibração da cuba e da tampa realizadas. Atualização de software realizada. Preventiva finalizada.',
+   data_levantamento:'2026-01-08', tecnico:'Wilson Prudêncio',
+   valor_orcamento:'', link_orcamento:'', conferencia:'', obs_orcamento:'', status:'Preventiva OK', data_execucao:'2026-01-08', trabalho:''}
+];
+seed.forEach(s => {
+  const idx = registros.findIndex(r => r.os === s.os);
+  if (idx < 0) registros.push(s);
+  else registros[idx] = { ...registros[idx], ...s }; // atualiza campos do seed
+});
+localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
+renderStats(); renderTabela();
+
+function trocarTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['registros','financeiro','pecas'][i]===id);});
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.toggle('active',p.id==='tab-'+id);});
+}
+
+function fmt(v) { return parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function toggleEquip(idx) {
+  var b = document.getElementById('eb_'+idx);
+  var a = document.getElementById('earr_'+idx);
+  var open = b.style.display === 'block';
+  b.style.display = open ? 'none' : 'block';
+  if (a) a.style.transform = open ? '' : 'rotate(90deg)';
+}
+
+// ── BANCO COMPLETO DE NFs ASSISTEC ───────────────────────────────
+var NFS_ASSISTEC = [
+  // ===== 2023 =====
+  {nf:'10258',data:'2023-06-20',venc:'2023-07-11',valor:7851.89,grupo:'Fornos SCC (Gás)',obs:'Peças preventivas SCC 201/202',
+   itens:[
+    {cod:'87.01.544',desc:'Kit borracha encosto + chapa (SI/MI 201)',qtd:1,total:740.72},
+    {cod:'2112.1006',desc:'Mangueira do vapor (C/CPC/SCC/WE)',qtd:2,total:1065.16},
+    {cod:'44.01.229',desc:'Mangueira do dreno - caldeira (WE/P 201G)',qtd:1,total:403.41},
+    {cod:'8354.1320',desc:'Acoplamento da bomba d\'água (M4) - completo (CPC/SCC)',qtd:1,total:155.05},
+    {cod:'2067.0050',desc:'Mangueira D10 trançada',qtd:2,total:446.88},
+    {cod:'56.00.176',desc:'Mangueira de sucção do CleanJet (SCC 201-202)',qtd:1,total:479.62},
+    {cod:'56.00.175',desc:'Mangueira de pressão do CleanJet (SCC 201-202)',qtd:1,total:207.50},
+    {cod:'54.01.253',desc:'Tampa c/ injetor B2 (SCC WE/P 201)',qtd:1,total:1004.84},
+    {cod:'54.01.168',desc:'Junta da tampa da caixa queching (esgoto)',qtd:1,total:36.69},
+    {cod:'54.01.045',desc:'Mangueira 76x5mm',qtd:1,total:196.28},
+    {cod:'20.00.398',desc:'Borracha de porta (SCC 201)',qtd:1,total:1262.55},
+    {cod:'56.00.439',desc:'Flap care container',qtd:1,total:267.66},
+    {cod:'40.02.684',desc:'Filtro de ar (WE/CMP)',qtd:2,total:175.90},
+    {cod:'70.00.566',desc:'Blower para burner (WE/P)',qtd:1,total:2189.42},
+    {cod:'27',desc:'Max Top Grill desincrustante 5L',qtd:1,total:92.63}
+  ]},
+  {nf:'10442',data:'2023-07-19',venc:'2023-08-09',valor:1275.86,grupo:'Fornos SCC (Gás)',obs:'Bomba d\'água SCC/WE',
+   itens:[
+    {cod:'44.00.207',desc:'Bomba d\'água (SCC/WE)',qtd:1,total:1275.86}
+  ]},
+  // ===== 2024 =====
+  {nf:'13218',data:'2024-10-11',venc:'2024-11-10',valor:21629.87,grupo:'Múltiplos Equipamentos',obs:'Peças SCC 201/202 e acessórios',
+   itens:[
+    {cod:'54.01.254',desc:'Bocal da caldeira - tampa de inspeção B2 (WE/P 202)',qtd:1,total:1000.25},
+    {cod:'54.01.168',desc:'Junta da tampa da caixa queching (esgoto)',qtd:1,total:27.72},
+    {cod:'20.00.399',desc:'Borracha de porta (SCC 202)',qtd:2,total:2048.50},
+    {cod:'87.01.731',desc:'Kit permutador de calor de ar quente',qtd:1,total:16257.72},
+    {cod:'40.02.684',desc:'Filtro de ar (WE/CMP)',qtd:1,total:87.95},
+    {cod:'50.01.146',desc:'Válvula solenóide simples (Y2)',qtd:1,total:162.53},
+    {cod:'20.00.398',desc:'Borracha de porta (SCC 201)',qtd:2,total:2337.70},
+    {cod:'40.02.100',desc:'Sensor de núcleo (SCC 201-202)',qtd:1,total:1120.88}
+  ]},
+  {nf:'13260',data:'2024-10-17',venc:'2024-11-16',valor:4176.15,grupo:'iVario Pro XL / VCC',obs:'Aprovado 01/08/2024 — peças VCC/iVario',
+   itens:[
+    {cod:'40.00.453',desc:'Relé estado sólido (CPC/SCC)',qtd:2,total:1771.86},
+    {cod:'87.00.586',desc:'Kit elemento aquecedor 1400W 230V',qtd:2,total:2782.94},
+    {cod:'40.04.370',desc:'Klixon de segurança elemento de aquecimento',qtd:1,total:85.34}
+  ]},
+  {nf:'13261',data:'2024-10-17',venc:'2024-11-16',valor:1004.58,grupo:'Fornos SCC (Elétrico)',obs:'Sensor de núcleo SCC 201-202',
+   itens:[
+    {cod:'40.02.100',desc:'Sensor de núcleo (SCC 201-202)',qtd:1,total:1116.20}
+  ]},
+  // ===== 2025 =====
+  {nf:'9983',data:'2025-03-03',venc:'2025-04-02',valor:9173.20,grupo:'Contrato Preventivo',obs:'OS 27224 — Contrato prestação de serviço preventivo',
+   itens:[
+    {cod:'07498',desc:'Contrato de manutenção preventiva equipamentos Rational (Serviço)',qtd:1,total:9173.20}
+  ]},
+  {nf:'14338',data:'2025-04-11',venc:'2025-05-12',valor:571.03,grupo:'Fornos SCC (Gás)',obs:'Field 11685',
+   itens:[
+    {cod:'40.00.404',desc:'Gerador de pulso (SCC 623/202, LMX)',qtd:1,total:549.93},
+    {cod:'16.00.232',desc:'Seletor para gerador de pulso azul',qtd:1,total:84.55}
+  ]},
+  {nf:'14933',data:'2025-08-08',venc:'2025-09-08',valor:27896.40,grupo:'Fornos SCC (Gás)',obs:'Field 12560',
+   itens:[
+    {cod:'87.01.731',desc:'Kit permutador de calor ar quente',qtd:1,total:16548.04},
+    {cod:'87.01.991',desc:'Queimador especial para estouros',qtd:2,total:7998.02},
+    {cod:'24.01.351',desc:'Prendedor da porta',qtd:1,total:1453.66},
+    {cod:'24.03.195',desc:'Fechamento completo lingueta da porta (201-202)',qtd:1,total:2249.52},
+    {cod:'20.00.399',desc:'Borracha de porta (SCC 202)',qtd:1,total:1041.91},
+    {cod:'87.01.545',desc:'Borracha encosto + chapa (SI/MI 202)',qtd:1,total:682.18},
+    {cod:'40.02.684',desc:'Filtro de ar (WE/CMP)',qtd:2,total:175.76},
+    {cod:'87.01.346',desc:'Eletrodo de ignição - vapor kit (WE/P 101-202G)',qtd:1,total:694.63},
+    {cod:'22.00.915',desc:'Tubo do flap (WE/P 101-102)',qtd:1,total:152.28}
+  ]},
+  {nf:'14934',data:'2025-08-08',venc:'2025-09-08',valor:21726.64,grupo:'Fornos SCC (Gás)',obs:'Field 12366 - Forno #2',
+   itens:[
+    {cod:'40.03.378',desc:'Motor turbina (WE/P 61-101-201)',qtd:1,total:7987.89},
+    {cod:'87.01.369',desc:'Barra LED esq/dir superior (SI 61/62/201/202)',qtd:2,total:1809.18},
+    {cod:'87.01.373',desc:'Barra LED esq/dir inferior (SI 201/202)',qtd:2,total:2006.74},
+    {cod:'20.00.398',desc:'Borracha de porta (SCC 201)',qtd:1,total:970.51},
+    {cod:'87.01.544',desc:'Kit borracha encosto + chapa (SI/MI 201)',qtd:1,total:548.84},
+    {cod:'87.01.771',desc:'Ótica LED (SI 61/62/201/202)',qtd:4,total:1446.76},
+    {cod:'74.00.034',desc:'Eletrodo ignição ar quente (WE/P G) 61-202',qtd:2,total:639.16},
+    {cod:'74.00.873',desc:'Eletrodo terra ar quente 57mm (WE/P G)',qtd:2,total:296.04},
+    {cod:'24.01.351',desc:'Prendedor da porta',qtd:1,total:1453.66},
+    {cod:'24.03.195',desc:'Fechamento completo lingueta da porta',qtd:1,total:2623.62},
+    {cod:'3024.0201',desc:'Lâmpada halôgenia 10W',qtd:2,total:63.08},
+    {cod:'108',desc:'Max Decrust descalcificante',qtd:1,total:130.60},
+    {cod:'22.00.985',desc:'Retentor do motor D15',qtd:1,total:150.33}
+  ]},
+  {nf:'14981',data:'2025-08-18',venc:'2025-09-17',valor:11321.98,grupo:'Fornos SCC (Gás)',obs:'Forno #2 - Field 12583',
+   itens:[
+    {cod:'87.01.771',desc:'Ótica LED (SI 61/62/201/202)',qtd:2,total:723.38},
+    {cod:'87.01.369',desc:'Barra LED esq/dir superior',qtd:2,total:1809.18},
+    {cod:'87.01.373',desc:'Barra LED esq/dir inferior (SI 201/202)',qtd:2,total:2006.74},
+    {cod:'40.05.296',desc:'Cabo luz da porta W40 (SCC 201-202)',qtd:1,total:195.02},
+    {cod:'40.05.294',desc:'Cabo LED esq+dir W43/44 (SCC 201-202)',qtd:1,total:222.14},
+    {cod:'40.05.293',desc:'Cabo LED direita W41 (SCC 201-202)',qtd:1,total:262.94},
+    {cod:'40.05.292',desc:'Cabo LED esquerda W42 (SCC 201-202)',qtd:1,total:330.69},
+    {cod:'87.01.544',desc:'Kit borracha encosto + chapa (SI/MI 201)',qtd:1,total:548.84},
+    {cod:'3024.0201',desc:'Lâmpada halôgenia 10W',qtd:2,total:63.08},
+    {cod:'40.00.091',desc:'Kit lente c/ vedações (SCC/CM)',qtd:2,total:1093.76},
+    {cod:'87.00.065',desc:'Soquete da lâmpada kit (SCC/WE)',qtd:2,total:1247.80},
+    {cod:'24.03.195',desc:'Fechamento completo lingueta da porta',qtd:1,total:2623.62},
+    {cod:'24.01.351',desc:'Prendedor da porta',qtd:1,total:1453.66}
+  ]},
+  {nf:'15266',data:'2025-10-10',venc:'2025-11-10',valor:14231.53,grupo:'Múltiplos Equipamentos',obs:'Aprovado Hudin Patrick - Projeto 10338',
+   itens:[
+    {cod:'42.00.112',desc:'Placa TFT - display/touch (WE)',qtd:1,total:5847.26},
+    {cod:'87.01.953',desc:'Bomba de circulação UP30',qtd:1,total:2454.06},
+    {cod:'56.00.175',desc:'Mangueira de pressão do CleanJet (SCC 201-202)',qtd:1,total:185.89},
+    {cod:'40.02.100',desc:'Sensor de núcleo (SCC 201-202)',qtd:1,total:1248.08},
+    {cod:'3017.1011',desc:'Sensor de pressão P1 (CPC/SCC 61-202)',qtd:1,total:583.06},
+    {cod:'40.07.493',desc:'Gerador de pulso (substitui 40.00.404P)',qtd:1,total:694.23},
+    {cod:'87.01.004',desc:'Retrofit kit interface Ethernet',qtd:1,total:1062.09},
+    {cod:'74.00.034',desc:'Eletrodo de ignição ar quente (WE/P G) 61-202',qtd:1,total:319.58},
+    {cod:'74.01.039',desc:'Eletrodo terra ar quente 47mm (WE/P 102-202G)',qtd:1,total:326.39},
+    {cod:'87.01.545',desc:'Borracha encosto + chapa (SI/MI 202)',qtd:1,total:682.18},
+    {cod:'40.03.516',desc:'Cabo MMI-CPU (WE)',qtd:1,total:401.40},
+    {cod:'42.00.266',desc:'Placa-fonte luz interior (SI)',qtd:1,total:1014.13},
+    {cod:'16.02.062',desc:'Seletor gerador de pulso prata (WE)',qtd:1,total:252.03},
+    {cod:'40.03.386',desc:'Cobertura filtro de ar entrada/inferior (WE/P 2)',qtd:1,total:380.76},
+    {cod:'87.01.771',desc:'Ótica LED (SI 61/62/201/202)',qtd:1,total:361.69}
+  ]},
+  {nf:'15506',data:'2025-12-04',venc:'2026-01-02',valor:1712.67,grupo:'iVario Pro XL / VCC',obs:'Field 13615 + 13744',
+   itens:[
+    {cod:'20.00.993',desc:'Junta para válvula da cuba VCC/311',qtd:1,total:502.99},
+    {cod:'87.00.586',desc:'Kit elemento aquecedor resistência 1400W 230V',qtd:1,total:1399.98}
+  ]},
+  {nf:'15507',data:'2025-12-04',venc:'2026-01-02',valor:7550.34,grupo:'iVario Pro XL / VCC',obs:'Field 13615 + 13621',
+   itens:[
+    {cod:'20.00.993',desc:'Junta para válvula da cuba VCC/311',qtd:1,total:502.99},
+    {cod:'87.00.586',desc:'Kit elemento aquecedor resistência 1400W 230V',qtd:5,total:6999.90},
+    {cod:'40.00.453',desc:'Relé estado sólido (CPC/SCC)',qtd:1,total:886.38}
+  ]},
+  // ===== 2026 =====
+  {nf:'15930',data:'2026-03-05',venc:'2026-04-01',valor:2963.65,grupo:'iVario Pro XL / VCC',obs:'Field 14315',
+   itens:[
+    {cod:'87.01.933',desc:'Conjunto de rodas 2pcs sem travão Ø12',qtd:1,total:1496.26},
+    {cod:'87.01.934',desc:'Conjunto de rodas 2pcs com travão Ø12',qtd:1,total:1617.02}
+  ]},
+  {nf:'16035',data:'2026-03-18',venc:'2026-04-14',valor:797.72,grupo:'Fornos SCC (Elétrico)',obs:'Field 11915',
+   itens:[
+    {cod:'40.00.453',desc:'Relé estado sólido (CPC/SCC)',qtd:1,total:886.36}
+  ]},
+  {nf:'16068',data:'2026-03-24',venc:'2026-04-22',valor:8994.14,grupo:'Fornos SCC (Gás)',obs:'Field 14309',
+   itens:[
+    {cod:'87.01.991',desc:'Queimador especial para estouros',qtd:2,total:8437.92},
+    {cod:'20.00.399',desc:'Borracha de porta (SCC 202)',qtd:1,total:1099.22},
+    {cod:'24.04.797',desc:'Borracha do encosto do carrinho (SI/MI 202)',qtd:1,total:456.34}
+  ]},
+  {nf:'16069',data:'2026-03-24',venc:'2026-04-22',valor:558.86,grupo:'Fornos SCC (Gás)',obs:'Field 14312',
+   itens:[
+    {cod:'40.01.482',desc:'Protetor térmico do gabinete 365°C (SCC/CM 61-202)',qtd:1,total:620.95}
+  ]},
+  {nf:'16092',data:'2026-04-02',venc:'2026-04-22',valor:2127.35,grupo:'Fornos SCC (Gás)',obs:'',
+   itens:[
+    {cod:'70.00.566',desc:'Blower para burner (WE/P)',qtd:1,total:2363.72}
+  ]},
+  {nf:'16102',data:'2026-04-06',venc:'2026-05-04',valor:1185.05,grupo:'Fornos SCC (Gás)',obs:'',
+   itens:[
+    {cod:'40.02.100',desc:'Sensor de núcleo (SCC 201-202)',qtd:1,total:1316.72}
+  ]},
+  {nf:'16160',data:'2026-04-10',venc:'2026-05-12',valor:5158.59,grupo:'Múltiplos Equipamentos',obs:'Aprovado via grupo 10/04',
+   itens:[
+    {cod:'42.00.133',desc:'Operador PCB TFT',qtd:1,total:5731.77}
+  ]},
+  {nf:'16401',data:'2026-05-27',venc:'2026-06-24',valor:24145.98,grupo:'Múltiplos Equipamentos',obs:'Estoque Liv Up - entrega Wilson 27/05',
+   itens:[
+    {cod:'40.03.513',desc:'Motor turbina monofásico SCC WE/CM P 62/102/202',qtd:1,total:12170.40},
+    {cod:'44.00.362',desc:'Mangueira do vapor D70x55mm (SCC/CM 202)',qtd:2,total:2067.50},
+    {cod:'56.00.176',desc:'Mangueira de sucção do CleanJet (SCC 201-202)',qtd:2,total:1464.48},
+    {cod:'87.00.065',desc:'Soquete da lâmpada kit (SCC/WE)',qtd:3,total:1974.66},
+    {cod:'44.01.223',desc:'Mangueira do dreno caldeira (WE/P 201E)',qtd:2,total:1261.74},
+    {cod:'44.01.229',desc:'Mangueira do dreno caldeira (WE/P 201G)',qtd:2,total:1045.74},
+    {cod:'87.00.586',desc:'Kit elemento aquecedor resistência 1400W 230V',qtd:5,total:6999.90}
+  ]},
+  {nf:'16409',data:'2026-05-29',venc:'2026-06-09',valor:97.96,grupo:'iVario Pro XL / VCC',obs:'Field 14809',
+   itens:[
+    {cod:'20.00.993',desc:'Junta para válvula da cuba VCC/311',qtd:1,total:108.84}
+  ]},
+  {nf:'16456',data:'2026-06-11',venc:'2026-07-17',valor:24986.69,grupo:'Fornos SCC (Gás)',obs:'',
+   itens:[
+    {cod:'87.01.991',desc:'Queimador especial para estouros',qtd:3,total:12656.88},
+    {cod:'40.03.513',desc:'Motor turbina monofásico SCC WE/CM P 62/102/202',qtd:1,total:12170.40},
+    {cod:'87.01.545',desc:'Borracha encosto + chapa (SI/MI 202)',qtd:2,total:1439.40},
+    {cod:'22.00.985',desc:'Retentor do motor D15',qtd:2,total:317.20},
+    {cod:'20.00.993',desc:'Junta para válvula da cuba VCC/311',qtd:2,total:700.00},
+    {cod:'3024.0201',desc:'Lâmpada halôgenia 10W',qtd:3,total:111.00},
+    {cod:'2067.0050',desc:'Mangueira D10 trançada',qtd:2,total:362.40}
+  ]},
+  {nf:'16458',data:'2026-06-11',venc:'2026-07-22',valor:1743.88,grupo:'Fornos SCC (Gás)',obs:'',
+   itens:[
+    {cod:'20.00.398',desc:'Borracha de porta (SCC 201)',qtd:1,total:1032.56},
+    {cod:'87.01.544',desc:'Kit borracha encosto + chapa (SI/MI 201)',qtd:1,total:580.73},
+    {cod:'22.00.985',desc:'Retentor do motor D15',qtd:2,total:324.36}
+  ]},
+  {nf:'16459',data:'2026-06-11',venc:'2026-07-22',valor:721.20,grupo:'Fornos SCC (Gás)',obs:'',
+   itens:[
+    {cod:'40.07.493',desc:'Gerador de pulso (substitui 40.00.404P)',qtd:1,total:801.33}
+  ]},
+  {nf:'16460',data:'2026-06-11',venc:'2026-07-22',valor:10532.55,grupo:'iVario Pro XL / VCC',obs:'Field 14112',
+   itens:[
+    {cod:'20.00.993',desc:'Junta para válvula da cuba VCC/311',qtd:1,total:502.99},
+    {cod:'87.00.586',desc:'Kit elemento aquecedor resistência 1400W 230V',qtd:8,total:11199.84}
+  ]},
+  {nf:'16464',data:'2026-06-12',venc:'2026-07-28',valor:2868.24,grupo:'iVario Pro XL / VCC',obs:'',
+   itens:[
+    {cod:'40.06.713',desc:'Fonte de alimentação LMX;C-D 230V AC / 24V DC',qtd:1,total:2868.24}
+  ]},
+  {nf:'16478',data:'2026-06-17',venc:'2026-07-16',valor:2016.98,grupo:'Fornos SCC (Gás)',obs:'Solicitado por Cleison',
+   itens:[
+    {cod:'20.00.399',desc:'Borracha de porta (SCC 202)',qtd:1,total:1108.53},
+    {cod:'20.00.398',desc:'Borracha de porta (SCC 201)',qtd:1,total:1032.56}
+  ]},
+  {nf:'16489',data:'2026-06-18',venc:'2026-07-20',valor:2477.90,grupo:'Fornos SCC (Elétrico)',obs:'OS 14893',
+   itens:[
+    {cod:'40.00.453',desc:'Relé estado sólido (CPC/SCC)',qtd:3,total:2753.22}
+  ]},
+  {nf:'16491',data:'2026-06-18',venc:'2026-07-20',valor:1839.28,grupo:'Fornos SCC (Elétrico)',obs:'OS 14893',
+   itens:[
+    {cod:'87.00.674',desc:'Kit elemento aquecedor 2140W 230V',qtd:1,total:2043.65}
+  ]},
+  {nf:'16492',data:'2026-06-18',venc:'2026-07-27',valor:3167.40,grupo:'Fornos SCC (Gás)',obs:'OS 14890/14894/14895',
+   itens:[
+    {cod:'87.01.953',desc:'Bomba de circulação UP30',qtd:1,total:2611.73},
+    {cod:'56.00.175',desc:'Mangueira de pressão do CleanJet (SCC 201-202)',qtd:1,total:191.68},
+    {cod:'56.00.176',desc:'Mangueira de sucção do CleanJet (SCC 201-202)',qtd:1,total:715.92}
+  ]},
+  {nf:'16496',data:'2026-06-18',venc:'2026-07-27',valor:1536.30,grupo:'Fornos SCC (Gás)',obs:'OS 14895',
+   itens:[
+    {cod:'40.01.482',desc:'Protetor térmico do gabinete 365°C (SCC/CM 61-202)',qtd:1,total:674.45},
+    {cod:'20.00.398',desc:'Borracha de porta (SCC 201)',qtd:1,total:1032.56}
+  ]},
+  // ===== 2024 — Jean Silvério da Silva ME (mesma empresa, razão anterior) =====
+  {nf:'11601',data:'2024-01-12',venc:'2024-01-12',valor:4821.25,grupo:'Fornos SCC (Gás)',obs:'Field 071319-1951-1 — Aprovado Willian',
+   itens:[
+    {cod:'87.00.065',desc:'Soquete da lâmpada kit (SCC/WE)',qtd:1,total:497.27},
+    {cod:'3024.0201',desc:'Lâmpada halôgenia 10W',qtd:1,total:33.72},
+    {cod:'40.00.091',desc:'Kit lente c/ vedações (SCC/CM)',qtd:1,total:760.92},
+    {cod:'74.00.034',desc:'Eletrodo ignição ar quente (WE/P G) 61-202',qtd:2,total:864.32},
+    {cod:'74.00.873',desc:'Eletrodo terra ar quente 57mm (WE/P G)',qtd:2,total:406.32},
+    {cod:'40.02.684',desc:'Filtro de ar (WE/CMP)',qtd:2,total:200.52},
+    {cod:'20.00.398',desc:'Borracha de porta (SCC 201)',qtd:1,total:1451.93},
+    {cod:'8354.1320',desc:'Acoplamento da bomba d\'água (M4)',qtd:1,total:178.30},
+    {cod:'44.01.229',desc:'Mangueira do dreno caldeira (WE/P 201G)',qtd:1,total:463.92},
+    {cod:'24.04.796',desc:'Borracha encosto carrinho (SI/MI 201)',qtd:1,total:483.34}
+  ]},
+  {nf:'11907',data:'2024-03-12',venc:'2024-04-03',valor:2009.16,grupo:'Fornos SCC (Gás)',obs:'',
+   itens:[
+    {cod:'40.02.100',desc:'Sensor de núcleo (SCC 201-202)',qtd:2,total:2232.40}
+  ]},
+  // ===== 2025 extra =====
+  {nf:'14316',data:'2025-04-08',venc:'2025-05-08',valor:5821.28,grupo:'Fornos SCC (Gás)',obs:'Field 11724',
+   itens:[
+    {cod:'3024.0201',desc:'Lâmpada halôgenia 10W',qtd:2,total:74.00},
+    {cod:'40.00.091',desc:'Kit lente c/ vedações (SCC/CM)',qtd:1,total:748.40},
+    {cod:'87.00.065',desc:'Soquete da lâmpada kit (SCC/WE)',qtd:2,total:1145.20},
+    {cod:'20.00.398',desc:'Borracha de porta (SCC 201)',qtd:1,total:954.06},
+    {cod:'87.01.544',desc:'Kit borracha encosto + chapa (SI/MI 201)',qtd:1,total:559.73},
+    {cod:'87.01.346',desc:'Eletrodo de ignição vapor kit (WE/P 101-202G)',qtd:1,total:695.54},
+    {cod:'87.01.771',desc:'Ótica LED (SI 61/62/201/202)',qtd:4,total:1423.04},
+    {cod:'54.01.253',desc:'Tampa c/ injetor B2 (SCC WE/P 201)',qtd:1,total:728.17},
+    {cod:'40.00.095',desc:'Vidro/lente luz interior SCC',qtd:1,total:200.79}
+  ]},
+  // ===== NFS-e CONTRATO MENSAL (serviço) =====
+  {nf:'11667',data:'2026-04-01',venc:'2026-05-06',valor:9173.20,grupo:'Serviços de Manutenção (Contrato)',obs:'NFS-e — OS 29289 — Abr/2026',
+   itens:[
+    {cod:'—',desc:'Contrato mensal de manutenção preventiva/corretiva — OS 29289',qtd:1,total:9173.20}
+  ]},
+  {nf:'11930',data:'2026-06-01',venc:'2026-07-06',valor:9173.20,grupo:'Serviços de Manutenção (Contrato)',obs:'NFS-e — OS 29289 — Jun/2026',
+   itens:[
+    {cod:'—',desc:'Contrato mensal de manutenção preventiva/corretiva — OS 29289',qtd:1,total:9173.20}
+  ]},
+  // ===== JEAN SILVERIO (Assistec CNPJ 05.086.201/0001-77) =====
+  {nf:'11806',data:'2026-05-04',venc:'2026-06-06',valor:9173.20,grupo:'Serviços de Manutenção (Contrato)',obs:'NFS-e - Contrato OS 29289',
+   itens:[
+    {cod:'—',desc:'Prestação de serviço conforme contrato — OS 29289 (preventiva/corretiva)',qtd:1,total:9173.20}
+  ]},
+  {nf:'15956',data:'2026-03-09',venc:'2026-04-06',valor:4412.97,grupo:'Múltiplos Equipamentos',obs:'Field 14122',
+   itens:[
+    {cod:'42.00.251',desc:'Controle PCB sem cartão SD',qtd:1,total:4903.30}
+  ]},
+  {nf:'15957',data:'2026-03-09',venc:'2026-04-06',valor:4540.44,grupo:'Fornos SCC (Gás)',obs:'Field 14364',
+   itens:[
+    {cod:'20.00.398',desc:'Borracha de porta (SCC 201)',qtd:1,total:1023.89},
+    {cod:'24.04.796',desc:'Junta de vedação do troller',qtd:1,total:343.94},
+    {cod:'56.00.175',desc:'Mangueira de pressão do CleanJet (SCC 201-202)',qtd:1,total:196.12},
+    {cod:'56.00.176',desc:'Mangueira de sucção do CleanJet (SCC 201-202)',qtd:1,total:732.24},
+    {cod:'50.01.146',desc:'Válvula solenóide simples (Y2)',qtd:1,total:159.70},
+    {cod:'87.01.953',desc:'Bomba de circulação UP30',qtd:1,total:2589.03}
+  ]},
+  {nf:'15958',data:'2026-03-09',venc:'2026-04-06',valor:2044.59,grupo:'Fornos SCC (Gás)',obs:'Field 14411',
+   itens:[
+    {cod:'70.00.566',desc:'Blower para burner (WE/P)',qtd:1,total:2271.77}
+  ]},
+  {nf:'16006',data:'2026-03-12',venc:'2026-04-13',valor:1073.50,grupo:'Fornos SCC (Gás)',obs:'Field 14310',
+   itens:[
+    {cod:'24.04.796',desc:'Junta de vedação do troller',qtd:1,total:340.66},
+    {cod:'87.01.346',desc:'Eletrodo de ignição vapor kit (WE/P 101-202G)',qtd:1,total:732.84}
+  ]},
+  {nf:'16007',data:'2026-03-12',venc:'2026-04-13',valor:1250.43,grupo:'iVario Pro XL / VCC',obs:'Field 14304',
+   itens:[
+    {cod:'40.00.453',desc:'Relé estado sólido (CPC/SCC)',qtd:1,total:886.38},
+    {cod:'20.00.993',desc:'Junta para válvula da cuba VCC/311',qtd:1,total:502.99}
+  ]},
+  {nf:'16008',data:'2026-03-12',venc:'2026-04-13',valor:887.96,grupo:'Fornos SCC (Gás)',obs:'Field 13896',
+   itens:[
+    {cod:'74.00.034',desc:'Eletrodo de ignição ar quente (WE/P G) 61-202',qtd:2,total:674.30},
+    {cod:'74.00.873',desc:'Eletrodo terra ar quente 57mm (WE/P G)',qtd:2,total:312.32}
+  ]},
+  {nf:'16009',data:'2026-03-12',venc:'2026-04-13',valor:309.55,grupo:'Fornos SCC (Gás)',obs:'Field 14113',
+   itens:[
+    {cod:'24.04.796',desc:'Junta de vedação do troller',qtd:1,total:343.94}
+  ]},
+  {nf:'16297',data:'2026-05-08',venc:'2026-05-29',valor:721.20,grupo:'Fornos SCC (Gás)',obs:'Field 15610',
+   itens:[
+    {cod:'40.07.493',desc:'Gerador de pulso (substitui 40.00.404P)',qtd:1,total:801.33}
+  ]},
+  {nf:'16348',data:'2026-05-15',venc:'2026-06-15',valor:5121.94,grupo:'Fornos SCC (Elétrico)',obs:'Field 14809',
+   itens:[
+    {cod:'87.00.586',desc:'Kit elemento aquecedor resistência 1400W 230V',qtd:4,total:5691.04}
+  ]}
+];
+
+function renderFinanceiro() {
+  var total = 0; NFS_ASSISTEC.forEach(function(n){total+=n.valor;});
+  var totais = {};
+  NFS_ASSISTEC.forEach(function(n){
+    var ano = n.data.substring(0,4);
+    totais[ano] = (totais[ano]||0) + n.valor;
+  });
+  var anos = Object.keys(totais).sort();
+  var dataMin = NFS_ASSISTEC.map(function(n){return n.data;}).sort()[0];
+  var dataMax = NFS_ASSISTEC.map(function(n){return n.data;}).sort().slice(-1)[0];
+
+  // Agrupa por grupo
+  var grupos = {};
+  NFS_ASSISTEC.forEach(function(nf){
+    if(!grupos[nf.grupo]) grupos[nf.grupo]={nfs:[],total:0};
+    grupos[nf.grupo].nfs.push(nf);
+    grupos[nf.grupo].total+=nf.valor;
+  });
+
+  // Cards resumo
+  var cards = '';
+  cards += '<div class="fin-card"><div class="num">R$ '+fmt(total)+'</div><div class="lbl">Total geral Assistec/Jean Silvério</div><div class="sub">'+NFS_ASSISTEC.length+' notas fiscais</div></div>';
+  cards += '<div class="fin-card"><div class="num" style="color:#555;font-size:1rem">'+fmtData(dataMin)+' → '+fmtData(dataMax)+'</div><div class="lbl">Período coberto</div><div class="sub">Notas localizadas no Drive</div></div>';
+  anos.forEach(function(a){
+    var cnt = NFS_ASSISTEC.filter(function(n){return n.data.startsWith(a);}).length;
+    cards += '<div class="fin-card"><div class="num" style="color:#1a237e">R$ '+fmt(totais[a])+'</div><div class="lbl">Total '+a+'</div><div class="sub">'+cnt+' notas</div></div>';
+  });
+  cards += '<div class="fin-card" style="background:#fff8e1;border:1px solid #ffe082"><div class="num" style="color:#f57f17;font-size:1.1rem">⚠️</div><div class="lbl">Notas anteriores a '+dataMin.substring(0,7)+'</div><div class="sub">Podem existir no Drive — não localizadas automaticamente</div></div>';
+  document.getElementById('finSummary').innerHTML = cards;
+
+  // Por grupo
+  var html = '';
+  var idx = 0;
+  Object.keys(grupos).forEach(function(grp){
+    var gd = grupos[grp];
+    var nfsHtml = '';
+    gd.nfs.forEach(function(nf){
+      var itensHtml = '<table class="nf-table"><thead><tr><th>Código</th><th>Descrição</th><th>Qtd</th><th style="text-align:right">Total</th></tr></thead><tbody>';
+      nf.itens.forEach(function(it){
+        itensHtml += '<tr><td style="font-family:monospace;font-size:0.78rem;color:#888">'+it.cod+'</td><td>'+it.desc+'</td><td style="text-align:center">'+it.qtd+'</td><td style="text-align:right">R$ '+fmt(it.total)+'</td></tr>';
+      });
+      itensHtml += '</tbody></table>';
+      var ano = nf.data.startsWith('2025') ? '<span style="background:#f3e5f5;color:#6a1b9a;padding:1px 7px;border-radius:10px;font-size:0.72rem;font-weight:600;margin-left:6px">2025</span>' : '<span style="background:#e3f2fd;color:#0d47a1;padding:1px 7px;border-radius:10px;font-size:0.72rem;font-weight:600;margin-left:6px">2026</span>';
+      nfsHtml += '<div style="padding:14px 20px;border-bottom:1px solid #f0f0f0;">';
+      nfsHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
+      nfsHtml += '<div><strong style="color:#1a237e">NF '+nf.nf+'</strong>'+ano+'<span style="color:#888;font-size:0.82rem;margin-left:8px">'+fmtData(nf.data)+'</span>';
+      if(nf.obs) nfsHtml += '<span style="color:#aaa;font-size:0.78rem;margin-left:8px">'+nf.obs+'</span>';
+      nfsHtml += '</div><strong style="color:#2e7d32;font-size:1rem">R$ '+fmt(nf.valor)+'</strong></div>';
+      nfsHtml += itensHtml + '</div>';
+    });
+    html += '<div class="equip-section">';
+    html += '<div class="equip-header" onclick="toggleEquip('+idx+')">';
+    html += '<h3>🔧 '+grp+'</h3>';
+    html += '<div style="display:flex;align-items:center;gap:16px"><small style="color:#888">'+gd.nfs.length+' nota'+(gd.nfs.length>1?'s':'')+'</small>';
+    html += '<span class="etotal">R$ '+fmt(gd.total)+'</span>';
+    html += '<span id="earr_'+idx+'" style="color:#1a237e;transition:transform 0.2s">▶</span></div></div>';
+    html += '<div class="equip-body" id="eb_'+idx+'" style="display:none">'+nfsHtml+'</div>';
+    html += '</div>';
+    idx++;
+  });
+  document.getElementById('finEquipamentos').innerHTML = html;
+}
+
+renderFinanceiro();
+renderPecas();
+
+function renderPecas() {
+  // ── Agrupa todas as peças de todos os NFs ──
+  var mapa = {};
+  NFS_ASSISTEC.forEach(function(nf) {
+    nf.itens.forEach(function(it) {
+      if (!it.cod || it.cod === '—') return;
+      var key = it.cod;
+      if (!mapa[key]) mapa[key] = {cod:it.cod, desc:it.desc, vezes:0, qtd:0, total:0, grupo:nf.grupo, nfs:[]};
+      mapa[key].vezes++;
+      mapa[key].qtd += (parseFloat(it.qtd)||1);
+      mapa[key].total += (parseFloat(it.total)||0);
+      if (mapa[key].nfs.indexOf(nf.nf)<0) mapa[key].nfs.push(nf.nf);
+    });
+  });
+  var lista = Object.values(mapa);
+
+  // Totais gerais
+  var totalPecas = lista.length;
+  var totalItens = lista.reduce(function(s,p){return s+p.vezes;},0);
+  var totalGasto = lista.reduce(function(s,p){return s+p.total;},0);
+
+  // Rankings
+  var porFreq  = lista.slice().sort(function(a,b){return b.vezes-a.vezes;});
+  var porValor = lista.slice().sort(function(a,b){return b.total-a.total;});
+  var porQtd   = lista.slice().sort(function(a,b){return b.qtd-a.qtd;});
+  var top = 15;
+
+  // Mapa grupo→cor
+  var corGrupo = {
+    'Fornos SCC (Gás)':'bb-gas',
+    'Fornos SCC (Elétrico)':'bb-ele',
+    'iVario Pro XL / VCC':'bb-vcc',
+    'Múltiplos Equipamentos':'bb-mul',
+    'Serviços de Manutenção (Contrato)':'bb-svc'
+  };
+
+  // ── Cards resumo ──
+  var cards = '';
+  cards += '<div class="fin-card"><div class="num">'+totalPecas+'</div><div class="lbl">Tipos de peças distintos</div></div>';
+  cards += '<div class="fin-card"><div class="num" style="color:#1a237e">'+totalItens+'</div><div class="lbl">Total de ocorrências</div><div class="sub">em '+NFS_ASSISTEC.filter(function(n){return n.itens[0]&&n.itens[0].cod!=='—';}).length+' NFs de peças</div></div>';
+  cards += '<div class="fin-card"><div class="num" style="color:#c62828">'+porFreq[0].vezes+'x</div><div class="lbl">Peça mais pedida</div><div class="sub">'+porFreq[0].desc.substring(0,35)+'…</div></div>';
+  cards += '<div class="fin-card"><div class="num" style="color:#2e7d32">R$ '+fmt(totalGasto)+'</div><div class="lbl">Total gasto em peças</div><div class="sub">excl. serviços de contrato</div></div>';
+  document.getElementById('pecasSummary').innerHTML = cards;
+
+  // ── Função helper: barra ──
+  function barHtml(items, maxVal, valFn, valLabel, fillClass) {
+    return items.map(function(p, i) {
+      var pct = Math.round((valFn(p)/maxVal)*100);
+      var label = valLabel(p);
+      var grpClass = corGrupo[p.grupo] || 'bb-mul';
+      return '<div class="bar-row">'+
+        '<span class="bar-rank">'+(i+1)+'</span>'+
+        '<div class="bar-label">'+p.desc.substring(0,48)+(p.desc.length>48?'…':'')+'<small>'+p.cod+'</small></div>'+
+        '<div class="bar-track"><div class="bar-fill '+fillClass+'" style="width:'+pct+'%"></div></div>'+
+        '<span class="bar-val">'+label+'</span>'+
+        '<span class="bar-badge '+grpClass+'">'+p.grupo.replace('Fornos SCC ','SCC ').replace('iVario Pro XL / ','').replace(' Equipamentos','').replace(' (Contrato)','')+'</span>'+
+      '</div>';
+    }).join('');
+  }
+
+  // ── Gastos por grupo ──
+  var porGrupo = {};
+  lista.forEach(function(p){
+    porGrupo[p.grupo] = (porGrupo[p.grupo]||0) + p.total;
+  });
+  var totalPorGrupo = Object.values(porGrupo).reduce(function(s,v){return s+v;},0);
+  var cores = {'Fornos SCC (Gás)':'#e65100','Fornos SCC (Elétrico)':'#1a237e','iVario Pro XL / VCC':'#6a1b9a','Múltiplos Equipamentos':'#2e7d32','Serviços de Manutenção (Contrato)':'#c62828'};
+  var pieHtml = Object.keys(porGrupo).map(function(g){
+    var pct = Math.round((porGrupo[g]/totalPorGrupo)*100);
+    var cor = cores[g]||'#888';
+    return '<div class="pie-item"><div class="pie-dot" style="background:'+cor+'"></div><span><strong>'+pct+'%</strong> '+g+' <span style="color:#aaa">(R$ '+fmt(porGrupo[g])+')</span></span></div>';
+  }).join('');
+
+  // ── Tabela completa ──
+  var tabelaHtml = '<div class="scroll-table"><table class="full-table"><thead><tr>'+
+    '<th>#</th><th>Código</th><th>Descrição</th><th>Vezes pedida</th><th>Qtd total</th><th>Total gasto</th><th>Equipamento</th>'+
+    '</tr></thead><tbody>'+
+    porFreq.map(function(p,i){
+      var gc = corGrupo[p.grupo]||'bb-mul';
+      return '<tr>'+
+        '<td style="color:#aaa;font-weight:600">'+(i+1)+'</td>'+
+        '<td style="font-family:monospace;font-size:0.78rem;color:#888">'+p.cod+'</td>'+
+        '<td>'+p.desc+'</td>'+
+        '<td style="text-align:center;font-weight:700;color:#c62828">'+p.vezes+'x</td>'+
+        '<td style="text-align:center">'+p.qtd+'</td>'+
+        '<td style="text-align:right;font-weight:600">R$ '+fmt(p.total)+'</td>'+
+        '<td><span class="bar-badge '+gc+'">'+p.grupo.replace('Fornos SCC ','SCC ').replace('iVario Pro XL / ','').replace(' Equipamentos','').replace(' (Contrato)','')+'</span></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+
+  // ── Monta conteúdo ──
+  var html = '';
+
+  // Distribuição por grupo
+  html += '<div class="dash-section"><h3>📈 Distribuição de Gastos por Grupo de Equipamento</h3><div class="equip-pie">'+pieHtml+'</div></div>';
+
+  // Grid: frequência x valor
+  html += '<div class="pecas-grid">';
+
+  html += '<div class="dash-section"><h3>🔁 Top '+top+' Peças Mais Pedidas (por frequência)</h3>'+
+    barHtml(porFreq.slice(0,top), porFreq[0].vezes,
+      function(p){return p.vezes;},
+      function(p){return p.vezes+'x ('+p.qtd+' un)';},
+      'bar-fill-freq')+
+  '</div>';
+
+  html += '<div class="dash-section"><h3>💰 Top '+top+' Peças Mais Caras (total gasto)</h3>'+
+    barHtml(porValor.slice(0,top), porValor[0].total,
+      function(p){return p.total;},
+      function(p){return 'R$ '+fmt(p.total);},
+      'bar-fill-val')+
+  '</div>';
+
+  html += '</div>'; // fecha pecas-grid
+
+  // Tabela completa
+  html += '<div class="dash-section"><h3>📋 Todas as Peças — Ordenado por Frequência</h3>'+tabelaHtml+'</div>';
+
+  document.getElementById('pecasContent').innerHTML = html;
+}
+</script>
+</body>
+</html>
