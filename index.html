@@ -186,6 +186,7 @@
   <!-- TABS -->
   <div class="tabs" style="margin-bottom:20px;">
     <button class="tab-btn active" onclick="trocarTab('registros')">📋 Registros de Preventiva</button>
+    <button class="tab-btn" onclick="trocarTab('orcamentos')">📝 Orçamentos</button>
     <button class="tab-btn" onclick="trocarTab('financeiro')">💰 Financeiro — Notas Assistec</button>
     <button class="tab-btn" onclick="trocarTab('pecas')">📊 Dashboard de Peças</button>
   </div>
@@ -222,6 +223,42 @@
     <div class="no-data" id="noData" style="display:none;">Nenhum registro. Clique em "📄 Importar PDF" ou "+ Novo Registro".</div>
   </div>
   </div><!-- fim tab-registros -->
+
+  <!-- PAINEL ORÇAMENTOS -->
+  <div class="tab-panel" id="tab-orcamentos">
+    <div class="stats-bar" id="orcStats"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+      <h2 id="orcCountLabel" style="font-size:1rem;color:#555;">0 orçamentos</h2>
+      <div class="filters">
+        <select id="orcFiltroStatus" onchange="renderOrcamentos()">
+          <option value="">Todos os status</option>
+          <option value="Levantamento">Levantamento</option>
+          <option value="Em Aprovação">Em Aprovação</option>
+          <option value="Aprovado">Aprovado</option>
+          <option value="Executado">Executado</option>
+          <option value="Reprovado">Reprovado</option>
+        </select>
+        <select id="orcFiltroConf" onchange="renderOrcamentos()">
+          <option value="">Todas as conferências</option>
+          <option value="Sim">✅ Bate exatamente</option>
+          <option value="Parcial">⚠️ Parcial</option>
+          <option value="Não">❌ Não bate</option>
+          <option value="">Não verificado</option>
+        </select>
+        <input type="text" id="orcFiltroBusca" placeholder="Buscar forno / OS..." oninput="renderOrcamentos()" style="width:160px;">
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Forno / OS</th><th>Valor do Orçamento</th><th>Peças batem?</th>
+          <th>Status</th><th>Observações do Orçamento</th><th>Link / Arquivo</th><th>Ações</th>
+        </tr></thead>
+        <tbody id="orcBody"></tbody>
+      </table>
+      <div class="no-data" id="orcNoData" style="display:none;">Nenhum registro com orçamento. Adicione o valor do orçamento nos registros de preventiva.</div>
+    </div>
+  </div>
 
   <!-- PAINEL PEÇAS -->
   <div class="tab-panel" id="tab-pecas">
@@ -467,22 +504,26 @@ function extrairDadosPDF(texto) {
   for (let i=1; i<L.length; i++) {
     if (/necess[aá]rio\s+(a\s+)?troca/i.test(L[i])) {
       const p = L[i-1];
-      // Ignora linhas que são cabeçalhos ou já incluídas
-      if (p && p.length>3 && !/^(ok|foto|verificaç|adesivo|limpeza|potenci|bordacha|campa|conect|botão|lâmpada|filtro|gaveta|ponteira|esguicho|entrada|reaperto|vedação|soquete|orçamento|observ|assina)/i.test(p) && !d.pecas.includes(p)) {
+      // Ignora somente linhas que claramente são cabeçalhos/ações, não nomes de peça
+      if (p && p.length>3 && !/^(ok\b|foto|verificaç|adesivo|limpeza\s+geral|potenci|campa|conect|botão|entrada\s+de|reaperto|orçamento|observ|assinatura|sim\b|não\b)/i.test(p) && !d.pecas.includes(p)) {
         d.pecas.push(p);
       }
     }
   }
 
-  // Peças do orçamento — coleta linhas após "Orçamento" até linha não-item
+  // Peças do orçamento — coleta apenas linhas que parecem descrição de peça (com código ou quantidade)
   const orcIdx = L.findIndex(l => /^or[çc]amento$/i.test(l));
   if (orcIdx>=0) {
     for (let i=orcIdx+1; i<L.length; i++) {
       const linha = L[i];
       // Para quando chega em seção nova
-      if (/^(observa[çc]|assina|uma solu|reaperto|vedação|soquete)/i.test(linha)) break;
-      // Item de orçamento: começa com número ou é descrição de peça
-      if (linha.length > 3 && !d.pecas.includes(linha)) d.pecas.push(linha);
+      if (/^(observa[çc]|assinatura|uma solu[çc]|servi[çc]o realizado|descri[çc][aã]o da conclus)/i.test(linha)) break;
+      // Aceita linha se tem código de peça (XX.XX.XXX), quantidade inicial (01/02/1/2) ou é descrição clara
+      const temCodigo = /\d{2}\.\d{2}\.\d{3}/.test(linha);
+      const temQtd    = /^\d{1,2}\s+[a-zA-Z]/.test(linha);
+      if ((temCodigo || temQtd) && linha.length > 5 && !d.pecas.includes(linha)) {
+        d.pecas.push(linha);
+      }
     }
   }
 
@@ -1044,8 +1085,62 @@ localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
 renderStats(); renderTabela();
 
 function trocarTab(id) {
-  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['registros','financeiro','pecas'][i]===id);});
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['registros','orcamentos','financeiro','pecas'][i]===id);});
   document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.toggle('active',p.id==='tab-'+id);});
+  if (id==='orcamentos') renderOrcamentos();
+}
+
+function renderOrcamentos() {
+  const fs  = document.getElementById('orcFiltroStatus').value;
+  const fc  = document.getElementById('orcFiltroConf').value;
+  const fb  = (document.getElementById('orcFiltroBusca').value||'').toLowerCase();
+  const cM  = {'Sim':'✅ Bate','Parcial':'⚠️ Parcial','Não':'❌ Não bate','':'—'};
+
+  // Inclui todos os registros (com ou sem orçamento)
+  const lista = registros.filter(r => {
+    if (fs && r.status !== fs) return false;
+    if (fc !== '' && fc !== undefined) {
+      if (fc === '' && r.conferencia !== '') return false;
+      if (fc !== '' && r.conferencia !== fc) return false;
+    }
+    if (fb && ![r.forno, r.os, r.modelo, r.relatorio].some(v=>(v||'').toLowerCase().includes(fb))) return false;
+    return true;
+  });
+
+  // Cards
+  const comValor   = registros.filter(r => r.valor_orcamento);
+  const totalOrc   = comValor.reduce((s,r) => s + parseFloat(r.valor_orcamento||0), 0);
+  const aprovados  = registros.filter(r => r.status === 'Aprovado' || r.status === 'Executado').length;
+  const pendentes  = registros.filter(r => r.status === 'Em Aprovação').length;
+  const semOrc     = registros.filter(r => !r.valor_orcamento && r.status !== 'Executado' && r.status !== 'Reprovado').length;
+
+  document.getElementById('orcStats').innerHTML = `
+    <div class="stat-card"><div class="num">R$ ${fmt(totalOrc)}</div><div class="lbl">Total orçado</div></div>
+    <div class="stat-card"><div class="num" style="color:#e65100">${pendentes}</div><div class="lbl">Em aprovação</div></div>
+    <div class="stat-card"><div class="num" style="color:#2e7d32">${aprovados}</div><div class="lbl">Aprovados / Executados</div></div>
+    <div class="stat-card"><div class="num" style="color:#c62828">${semOrc}</div><div class="lbl">Sem orçamento (em aberto)</div></div>`;
+
+  document.getElementById('orcCountLabel').textContent = `${lista.length} registro${lista.length!==1?'s':''}`;
+
+  const tbody = document.getElementById('orcBody');
+  if (!lista.length) { tbody.innerHTML=''; document.getElementById('orcNoData').style.display='block'; return; }
+  document.getElementById('orcNoData').style.display='none';
+
+  tbody.innerHTML = lista.map(r => {
+    const val = r.valor_orcamento ? `<strong>R$ ${parseFloat(r.valor_orcamento).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong>` : '<span style="color:#aaa">Sem valor</span>';
+    const conf = cM[r.conferencia] || '—';
+    const link = r.link_orcamento ? `<a href="${r.link_orcamento}" target="_blank" class="orcamento-link" style="font-size:0.85rem">🔗 Ver arquivo</a>` : '<span style="color:#aaa">—</span>';
+    const obs  = r.obs_orcamento ? `<span style="font-size:0.8rem;color:#555">${r.obs_orcamento}</span>` : '<span style="color:#aaa">—</span>';
+    return `<tr>
+      <td><strong>OS ${r.os}</strong><br><span style="color:#1a237e;font-size:0.85rem">${r.forno}</span>${r.tecnico?`<br><small style="color:#aaa">${r.tecnico}</small>`:''}</td>
+      <td>${val}</td>
+      <td>${conf}</td>
+      <td>${badgeStatus(r.status)}</td>
+      <td>${obs}</td>
+      <td>${link}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="editar('${r.id}');trocarTab('registros')">Editar</button></td>
+    </tr>`;
+  }).join('');
 }
 
 function fmt(v) { return parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
