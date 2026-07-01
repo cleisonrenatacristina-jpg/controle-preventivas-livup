@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Controle de Preventivas — Fornos e VCCs Rational</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
@@ -161,6 +163,38 @@
   .full-table td { padding:8px 12px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
   .full-table tr:hover td { background:#fafafa; }
   .scroll-table { max-height:400px; overflow-y:auto; border-radius:0 0 8px 8px; }
+
+  /* BALANÇAS */
+  .bal-badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:0.72rem; font-weight:700; }
+  .bal-ag { background:#fff3e0; color:#e65100; }
+  .bal-ap { background:#e8f5e9; color:#1b5e20; }
+  .bal-rp { background:#ffebee; color:#b71c1c; }
+  .bal-ex { background:#e3f2fd; color:#0d47a1; }
+  .bal-co { background:#f3e5f5; color:#4a148c; }
+  .bal-aprov-card { background:white; border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,.1); margin-bottom:14px; overflow:hidden; border-left:4px solid #e65100; }
+  .bal-aprov-head { display:flex; justify-content:space-between; align-items:center; padding:12px 18px; background:#fff8f5; flex-wrap:wrap; gap:8px; }
+  .bal-aprov-body { padding:12px 18px; }
+  .bal-chip { display:inline-block; background:#e3f2fd; color:#0d47a1; padding:2px 9px; border-radius:12px; font-size:0.72rem; font-weight:600; }
+  .bal-pecas-tbl { width:100%; border-collapse:collapse; font-size:0.82rem; margin-top:6px; }
+  .bal-pecas-tbl th { background:#f5f7ff; padding:6px 10px; text-align:left; color:#555; font-weight:600; border-bottom:1px solid #e8eaf6; }
+  .bal-pecas-tbl td { padding:5px 8px; border-bottom:1px solid #f0f0f0; }
+  .bal-pecas-tbl tfoot td { background:#f9f9f9; font-weight:700; }
+  .bal-pecas-input { padding:4px 7px !important; font-size:0.81rem !important; }
+  .bal-sub-tabs { display:flex; gap:0; border-bottom:2px solid #e8eaf6; margin-bottom:16px; }
+  .bal-tab-btn { padding:8px 18px; border:none; background:none; cursor:pointer; font-size:0.85rem; font-weight:500; color:#888; border-bottom:3px solid transparent; margin-bottom:-2px; transition:all 0.2s; position:relative; }
+  .bal-tab-btn.active { color:#1a237e; border-bottom-color:#1a237e; background:white; border-radius:6px 6px 0 0; }
+  .bal-nb { position:absolute; top:4px; right:4px; background:#c62828; color:white; border-radius:50%; width:15px; height:15px; font-size:0.6rem; display:none; align-items:center; justify-content:center; font-weight:700; }
+  .bal-pin-box { background:white; border-radius:12px; padding:30px 26px; max-width:320px; margin:60px auto; text-align:center; box-shadow:0 2px 16px rgba(0,0,0,.12); }
+  .bal-setup-box { background:white; border-radius:12px; padding:22px; max-width:580px; margin:20px auto; box-shadow:0 2px 12px rgba(0,0,0,.1); }
+  .bal-setup-box ol { margin-left:18px; line-height:2.1; font-size:0.86rem; }
+  .bal-setup-box code { background:#f5f5f5; padding:2px 6px; border-radius:4px; font-size:0.79rem; font-family:monospace; }
+  .bal-role-cards { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; margin:40px auto; }
+  .bal-role-card { background:white; border-radius:12px; padding:30px 36px; text-align:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.1); transition:all .2s; min-width:170px; border:2px solid transparent; }
+  .bal-role-card:hover { transform:translateY(-3px); box-shadow:0 6px 22px rgba(0,0,0,.14); border-color:#1a237e; }
+  .bal-role-card .bri { font-size:2.4rem; margin-bottom:8px; }
+  .bal-role-card h3 { font-size:0.9rem; color:#1a237e; font-weight:700; margin-bottom:4px; }
+  .bal-role-card p { font-size:0.77rem; color:#888; }
+  @media(max-width:600px){ .bal-role-cards { flex-direction:column; align-items:center; } .bal-role-card { min-width:unset; width:100%; max-width:280px; } }
 </style>
 </head>
 <body>
@@ -189,6 +223,7 @@
     <button class="tab-btn" onclick="trocarTab('orcamentos')">📝 Orçamentos</button>
     <button class="tab-btn" onclick="trocarTab('financeiro')">💰 Financeiro — Notas Assistec</button>
     <button class="tab-btn" onclick="trocarTab('pecas')">📊 Dashboard de Peças</button>
+    <button class="tab-btn" onclick="trocarTab('balancas')">⚖️ Gestão de Balanças</button>
   </div>
 
   <!-- PAINEL REGISTROS -->
@@ -275,6 +310,201 @@
     <div id="finEquipamentos"></div>
   </div>
 
+  <!-- PAINEL BALANÇAS -->
+  <div class="tab-panel" id="tab-balancas">
+
+    <!-- Setup Firebase -->
+    <div id="balSetupArea" style="display:none">
+      <div class="bal-setup-box">
+        <h2 style="color:#1a237e;margin-bottom:10px">⚙️ Configurar Firebase (1x)</h2>
+        <p style="color:#555;margin-bottom:12px;font-size:0.86rem">Para os dados ficarem online e nunca se perderem, conecte ao Firebase gratuito.</p>
+        <ol>
+          <li>Acesse <strong>console.firebase.google.com</strong></li>
+          <li>Crie um projeto (ex: <code>livup-balancas</code>)</li>
+          <li>Menu: <strong>Firestore Database</strong> → Criar banco → modo teste</li>
+          <li><strong>Configurações do projeto</strong> → Seus apps → Web → copie o <code>firebaseConfig</code></li>
+          <li>Cole abaixo e clique em <strong>Conectar</strong></li>
+        </ol>
+        <div style="margin-top:12px">
+          <label style="font-size:0.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Cole o firebaseConfig:</label>
+          <textarea id="balFbInput" rows="7" style="font-family:monospace;font-size:0.76rem;width:100%;border:1.5px solid #ddd;border-radius:6px;padding:8px" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...",...}'></textarea>
+          <div style="color:#c62828;font-size:0.8rem;margin-top:4px;display:none" id="balFbErr">JSON inválido. Verifique e tente novamente.</div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
+          <button class="btn btn-primary" onclick="balSalvarConfig()">Conectar e Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seleção de perfil -->
+    <div id="balLanding" style="display:none">
+      <div class="bal-role-cards">
+        <div class="bal-role-card" onclick="balAcessarCampo()">
+          <div class="bri">🔧</div>
+          <h3>Terceirizada</h3>
+          <p>Registrar serviços e orçamentos</p>
+        </div>
+        <div class="bal-role-card" onclick="balPedirPIN()">
+          <div class="bri">📊</div>
+          <h3>Manutenção Liv Up</h3>
+          <p>Aprovar orçamentos e acompanhar</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- View Campo (Terceirizada) -->
+    <div id="balViewCampo" style="display:none">
+      <div class="stats-bar" id="balCampoStats"></div>
+      <div class="top-bar">
+        <div class="filters">
+          <select id="balCFiltBal" onchange="balRenderCampo()"><option value="">Todas as balanças</option></select>
+          <select id="balCFiltSt" onchange="balRenderCampo()">
+            <option value="">Todos os status</option>
+            <option>Aguardando</option><option>Aprovado</option><option>Reprovado</option><option>Em Execução</option><option>Concluído</option>
+          </select>
+          <select id="balCFiltSvc" onchange="balRenderCampo()"><option value="">Todos os serviços</option></select>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="balVoltarLanding()">Trocar acesso</button>
+          <button class="btn btn-primary" onclick="balAbrirNovoReg()">+ Novo Registro</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Balança / OS</th><th>Valor</th><th>Data Orç.</th><th>Entrega Prevista</th><th>Peças / Serviços</th><th>Status</th></tr></thead>
+          <tbody id="balCampoBody"></tbody>
+        </table>
+        <div class="no-data" id="balCampoND" style="display:none">Nenhum registro. Clique em "+ Novo Registro".</div>
+      </div>
+    </div>
+
+    <!-- View Gestão -->
+    <div id="balViewGestao" style="display:none">
+      <div class="stats-bar" id="balGestaoStats"></div>
+      <div class="bal-sub-tabs">
+        <button class="bal-tab-btn active" onclick="balTab('aprovacoes')" id="balTb-aprovacoes">⏳ Aprovações<span class="bal-nb" id="balNbAprov"></span></button>
+        <button class="bal-tab-btn" onclick="balTab('registros')" id="balTb-registros">📋 Todos os Registros</button>
+        <button class="bal-tab-btn" onclick="balTab('balancas-cad')" id="balTb-balancas-cad">⚖️ Balanças Cadastradas</button>
+        <div style="margin-left:auto;align-self:center;padding-right:4px">
+          <button class="btn btn-outline btn-sm" onclick="balVoltarLanding()">Trocar acesso</button>
+        </div>
+      </div>
+
+      <div id="balTp-aprovacoes">
+        <div id="balAprovList"><div class="no-data">Nenhum orçamento aguardando aprovação.</div></div>
+      </div>
+
+      <div id="balTp-registros" style="display:none">
+        <div class="top-bar">
+          <div class="filters">
+            <select id="balGFiltBal" onchange="balRenderGestaoReg()"><option value="">Todas as balanças</option></select>
+            <select id="balGFiltSt" onchange="balRenderGestaoReg()">
+              <option value="">Todos os status</option>
+              <option>Aguardando</option><option>Aprovado</option><option>Reprovado</option><option>Em Execução</option><option>Concluído</option>
+            </select>
+            <select id="balGFiltSvc" onchange="balRenderGestaoReg()"><option value="">Todos os serviços</option></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Balança / OS</th><th>Valor</th><th>Data Orç.</th><th>Entrega Prev.</th><th>Peças / Serviços</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="balGestaoBody"></tbody>
+          </table>
+          <div class="no-data" id="balGestaoND" style="display:none">Nenhum registro.</div>
+        </div>
+      </div>
+
+      <div id="balTp-balancas-cad" style="display:none">
+        <div class="top-bar">
+          <h2 style="font-size:0.93rem;color:#555">Balanças cadastradas</h2>
+          <button class="btn btn-primary btn-sm" onclick="balAbrirModalBal()">+ Cadastrar Balança</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nome / ID</th><th>Setor</th><th>Modelo</th><th>Nº Série</th><th></th></tr></thead>
+            <tbody id="balBody"></tbody>
+          </table>
+          <div class="no-data" id="balND" style="display:none">Nenhuma balança cadastrada.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- fim tab-balancas -->
+
+</div>
+
+<!-- ═══ MODAIS BALANÇAS ═══ -->
+
+<!-- PIN -->
+<div class="modal-overlay" id="balMPIN">
+  <div class="bal-pin-box">
+    <div style="font-size:1.8rem;margin-bottom:8px">🔐</div>
+    <h2 style="color:#1a237e;margin-bottom:6px">Acesso Manutenção</h2>
+    <p style="color:#888;font-size:0.83rem;margin-bottom:14px">Digite a senha de acesso</p>
+    <input type="password" id="balPinIn" placeholder="••••••" maxlength="20" style="text-align:center;letter-spacing:4px;font-size:1rem" onkeydown="if(event.key==='Enter')balCheckPIN()">
+    <div style="color:#c62828;font-size:0.8rem;margin-top:5px;display:none" id="balPinErr">Senha incorreta.</div>
+    <div style="display:flex;justify-content:center;gap:10px;margin-top:14px">
+      <button class="btn btn-outline" onclick="document.getElementById('balMPIN').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="balCheckPIN()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Novo Registro -->
+<div class="modal-overlay" id="balMReg">
+  <div class="modal" style="max-width:700px">
+    <h2>⚖️ Novo Registro de Serviço</h2>
+    <div class="form-grid">
+      <div class="full"><label>Balança *</label><select id="balRBal"><option value="">Selecione a balança...</option></select></div>
+      <div><label>Número da O.S.</label><input type="text" id="balROs" placeholder="Ex: OS-2024-001"></div>
+      <div><label>Valor Total do Orçamento (R$)</label><input type="number" id="balRVal" placeholder="0,00" step="0.01" min="0"></div>
+      <div><label>Data do Orçamento</label><input type="date" id="balRDOrc"></div>
+      <div><label>Data Prevista de Entrega</label><input type="date" id="balRDEnt"></div>
+      <div class="full sec-title">— Peças / Serviços a Executar —</div>
+      <div class="full">
+        <table class="bal-pecas-tbl">
+          <thead><tr><th>Descrição da Peça / Serviço</th><th style="width:28%">Valor (R$)</th><th style="width:10%"></th></tr></thead>
+          <tbody id="balPecasBd"></tbody>
+        </table>
+        <button class="btn btn-outline btn-sm" onclick="balAddPeca()" style="margin-top:8px">+ Adicionar linha</button>
+      </div>
+      <div class="full"><label>Observações</label><textarea id="balRObs" placeholder="Informações adicionais..."></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('balMReg').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-success" onclick="balSalvarReg()">Enviar para Aprovação</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cadastrar Balança -->
+<div class="modal-overlay" id="balMBal">
+  <div class="modal" style="max-width:480px">
+    <h2>Cadastrar Balança</h2>
+    <div class="form-grid">
+      <div class="full"><label>Nome / ID *</label><input type="text" id="balBNome" placeholder="Ex: Checkweigher L1 — Produção"></div>
+      <div><label>Setor</label><input type="text" id="balBSetor" placeholder="Ex: Produção 1, Expedição"></div>
+      <div><label>Modelo</label><input type="text" id="balBMod" placeholder="Ex: Mettler Toledo X3"></div>
+      <div class="full"><label>Número de Série</label><input type="text" id="balBSerie" placeholder="Ex: SN-2024-001"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('balMBal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-success" onclick="balSalvarBal()">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Aprovação -->
+<div class="modal-overlay" id="balMAprov">
+  <div class="modal" style="max-width:680px">
+    <h2 id="balAprovTit">Analisar Orçamento</h2>
+    <div id="balAprovContent"></div>
+    <div style="margin-top:12px">
+      <label>Observação (opcional)</label>
+      <textarea id="balAprovObs" rows="2" placeholder="Motivo da aprovação ou reprovação..." style="margin-top:5px"></textarea>
+    </div>
+    <div class="form-actions" id="balAprovActs"></div>
+  </div>
 </div>
 
 <!-- MODAL IMPORTAR PDF -->
@@ -1104,9 +1334,10 @@ localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
 renderStats(); atualizarFiltroSetor(); renderTabela();
 
 function trocarTab(id) {
-  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['registros','orcamentos','financeiro','pecas'][i]===id);});
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['registros','orcamentos','financeiro','pecas','balancas'][i]===id);});
   document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.toggle('active',p.id==='tab-'+id);});
   if (id==='orcamentos') renderOrcamentos();
+  if (id==='balancas') balIniciar();
 }
 
 function renderOrcamentos() {
@@ -1679,6 +1910,345 @@ function renderPecas() {
 
   document.getElementById('pecasContent').innerHTML = html;
 }
+
+// ════════════════════════════════════════════════════════
+//  GESTÃO DE BALANÇAS — Firebase Firestore
+// ════════════════════════════════════════════════════════
+var balDb = null, balBalCache = [], balRegCache = [], balAprovId = null, balRole = null, balIniciado = false;
+var BAL_PIN = 'livup2024';
+
+function balIniciar() {
+  if (balIniciado) return;
+  balIniciado = true;
+  var saved = localStorage.getItem('bal_fb_cfg');
+  if (saved) {
+    try { balConectar(JSON.parse(saved)); return; } catch(e) {}
+  }
+  document.getElementById('balSetupArea').style.display = 'block';
+}
+
+function balSalvarConfig() {
+  var raw = (document.getElementById('balFbInput').value||'').trim();
+  document.getElementById('balFbErr').style.display = 'none';
+  try {
+    var m = raw.match(/\{[\s\S]+\}/);
+    if (!m) throw 0;
+    var cfg = JSON.parse(m[0]);
+    localStorage.setItem('bal_fb_cfg', JSON.stringify(cfg));
+    balConectar(cfg);
+  } catch(e) { document.getElementById('balFbErr').style.display = 'block'; }
+}
+
+function balConectar(cfg) {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    balDb = firebase.firestore();
+    document.getElementById('balSetupArea').style.display = 'none';
+    document.getElementById('balLanding').style.display = 'block';
+    balListeners();
+  } catch(e) { alert('Erro Firebase: ' + e.message); }
+}
+
+function balListeners() {
+  balDb.collection('bal_cadastro').orderBy('nome').onSnapshot(function(snap) {
+    balBalCache = snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+    balRenderBalList();
+    balPopularSelBal();
+  });
+  balDb.collection('bal_registros').orderBy('em','desc').onSnapshot(function(snap) {
+    balRegCache = snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+    balFiltrosDin();
+    if (balRole==='campo')  balRenderCampo();
+    if (balRole==='gestao') { balRenderStats(); balRenderAprov(); balRenderGestaoReg(); }
+  });
+}
+
+// ── Navegação ──
+function balVoltarLanding() {
+  balRole = null;
+  ['balViewCampo','balViewGestao'].forEach(function(id){ document.getElementById(id).style.display='none'; });
+  document.getElementById('balLanding').style.display = 'block';
+}
+function balAcessarCampo() {
+  balRole = 'campo';
+  document.getElementById('balLanding').style.display = 'none';
+  document.getElementById('balViewCampo').style.display = 'block';
+  balRenderCampo();
+}
+function balAcessarGestao() {
+  balRole = 'gestao';
+  document.getElementById('balLanding').style.display = 'none';
+  document.getElementById('balViewGestao').style.display = 'block';
+  balRenderStats(); balRenderAprov(); balRenderGestaoReg(); balRenderBalList();
+}
+function balPedirPIN() {
+  document.getElementById('balPinIn').value = '';
+  document.getElementById('balPinErr').style.display = 'none';
+  document.getElementById('balMPIN').classList.add('open');
+  setTimeout(function(){ document.getElementById('balPinIn').focus(); },120);
+}
+function balCheckPIN() {
+  if (document.getElementById('balPinIn').value === BAL_PIN) {
+    document.getElementById('balMPIN').classList.remove('open');
+    balAcessarGestao();
+  } else { document.getElementById('balPinErr').style.display = 'block'; }
+}
+
+// ── Helpers ──
+function balFmt(v) { return parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function balFmtD(d) { if(!d)return '—'; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function balTot(pecas) { return (pecas||[]).reduce(function(s,x){return s+parseFloat(x.valor||0);},0); }
+function balBSt(s) {
+  var cls={Aguardando:'bal-ag',Aprovado:'bal-ap',Reprovado:'bal-rp','Em Execução':'bal-ex',Concluído:'bal-co'};
+  var lbl={Aguardando:'⏳ Aguardando',Aprovado:'✅ Aprovado',Reprovado:'❌ Reprovado','Em Execução':'🔧 Em Execução',Concluído:'✔ Concluído'};
+  return '<span class="bal-badge '+(cls[s]||'bal-ag')+'">'+(lbl[s]||s)+'</span>';
+}
+function balPecasMini(pecas) {
+  if(!pecas||!pecas.length) return '<span style="color:#aaa">—</span>';
+  var rows = pecas.slice(0,2).map(function(p){return '<div style="font-size:0.77rem">'+p.desc+'</div>';}).join('');
+  return rows + (pecas.length>2?'<div style="font-size:0.72rem;color:#aaa">+' + (pecas.length-2) + ' mais</div>':'');
+}
+function balPopularSelBal() {
+  var opts = '<option value="">Selecione a balança...</option>' +
+    balBalCache.filter(function(b){return b.ativo!==false;}).map(function(b){
+      return '<option value="'+b.id+'">'+b.nome+(b.setor?' — '+b.setor:'')+'</option>';
+    }).join('');
+  document.getElementById('balRBal').innerHTML = opts;
+}
+function balFiltrosDin() {
+  var bals = [];
+  balRegCache.forEach(function(r){ if(r.bNome&&bals.indexOf(r.bNome)<0) bals.push(r.bNome); });
+  bals.sort();
+  var bOpt = '<option value="">Todas as balanças</option>'+bals.map(function(b){return '<option value="'+b+'">'+b+'</option>';}).join('');
+  ['balCFiltBal','balGFiltBal'].forEach(function(id){ document.getElementById(id).innerHTML=bOpt; });
+
+  var svcs = [];
+  balRegCache.forEach(function(r){ (r.pecas||[]).forEach(function(p){ if(p.desc&&svcs.indexOf(p.desc)<0) svcs.push(p.desc); }); });
+  svcs.sort();
+  var sOpt = '<option value="">Todos os serviços</option>'+svcs.map(function(s){ return '<option value="'+s+'">'+(s.length>46?s.slice(0,46)+'…':s)+'</option>'; }).join('');
+  ['balCFiltSvc','balGFiltSvc'].forEach(function(id){ document.getElementById(id).innerHTML=sOpt; });
+
+  var n = balRegCache.filter(function(r){return r.status==='Aguardando';}).length;
+  var nb = document.getElementById('balNbAprov');
+  nb.style.display = n?'flex':'none'; nb.textContent = n;
+
+  var dl = document.getElementById('bal-dl-pecas');
+  if(!dl){ dl=document.createElement('datalist'); dl.id='bal-dl-pecas'; document.body.appendChild(dl); }
+  dl.innerHTML = svcs.map(function(s){return '<option value="'+s+'">';}).join('');
+}
+
+// ── Sub-tabs Gestão ──
+function balTab(id) {
+  ['aprovacoes','registros','balancas-cad'].forEach(function(t){
+    document.getElementById('balTp-'+t).style.display = t===id?'block':'none';
+    document.getElementById('balTb-'+t).classList.toggle('active',t===id);
+  });
+}
+
+// ── Stats Gestão ──
+function balRenderStats() {
+  var ag=balRegCache.filter(function(r){return r.status==='Aguardando';}).length;
+  var ap=balRegCache.filter(function(r){return r.status==='Aprovado'||r.status==='Em Execução';}).length;
+  var co=balRegCache.filter(function(r){return r.status==='Concluído';}).length;
+  var tv=balRegCache.filter(function(r){return ['Aprovado','Em Execução','Concluído'].indexOf(r.status)>=0;}).reduce(function(s,r){return s+parseFloat(r.valor||0);},0);
+  document.getElementById('balGestaoStats').innerHTML=
+    '<div class="stat-card"><div class="num">'+balRegCache.length+'</div><div class="lbl">Total de registros</div></div>'+
+    '<div class="stat-card"><div class="num" style="color:#e65100">'+ag+'</div><div class="lbl">Aguardando aprovação</div></div>'+
+    '<div class="stat-card"><div class="num" style="color:#2e7d32">'+ap+'</div><div class="lbl">Aprovados / Em execução</div></div>'+
+    '<div class="stat-card"><div class="num" style="color:#4a148c">'+co+'</div><div class="lbl">Concluídos</div></div>'+
+    '<div class="stat-card"><div class="num" style="color:#1a237e;font-size:1.15rem">R$ '+balFmt(tv)+'</div><div class="lbl">Total aprovado</div></div>';
+}
+
+// ── Aprovações ──
+function balRenderAprov() {
+  var pend = balRegCache.filter(function(r){return r.status==='Aguardando';});
+  var el = document.getElementById('balAprovList');
+  if(!pend.length){ el.innerHTML='<div class="no-data">Nenhum orçamento aguardando aprovação.</div>'; return; }
+  el.innerHTML = pend.map(function(r){
+    var tot = r.valor || balTot(r.pecas);
+    var rows = (r.pecas||[]).map(function(p){return '<tr><td>'+p.desc+'</td><td style="text-align:right">R$ '+balFmt(p.valor)+'</td></tr>';}).join('');
+    return '<div class="bal-aprov-card">'+
+      '<div class="bal-aprov-head">'+
+        '<div>'+
+          '<strong style="color:#1a237e">'+r.bNome+'</strong>'+
+          (r.bSetor?'<span class="bal-chip" style="margin-left:8px">'+r.bSetor+'</span>':'')+
+          (r.os?'<span style="color:#888;font-size:0.79rem;margin-left:8px">OS: '+r.os+'</span>':'')+
+          '<div style="font-size:0.78rem;color:#888;margin-top:3px">Orçamento: '+balFmtD(r.dOrc)+' &nbsp;|&nbsp; Entrega: '+balFmtD(r.dEnt)+'</div>'+
+        '</div>'+
+        '<div style="text-align:right"><div style="font-size:1.1rem;font-weight:700;color:#2e7d32">R$ '+balFmt(tot)+'</div><div style="font-size:0.72rem;color:#888">valor total</div></div>'+
+      '</div>'+
+      '<div class="bal-aprov-body">'+
+        '<table class="bal-pecas-tbl"><thead><tr><th>Peça / Serviço</th><th style="text-align:right">Valor</th></tr></thead>'+
+        '<tbody>'+rows+'</tbody>'+
+        '<tfoot><tr><td style="font-weight:700">Total</td><td style="text-align:right;font-weight:700;color:#2e7d32">R$ '+balFmt(tot)+'</td></tr></tfoot>'+
+        '</table>'+
+        (r.obs?'<div style="margin-top:8px;font-size:0.79rem;color:#555;background:#f9f9f9;padding:7px 10px;border-radius:5px;border-left:3px solid #c5cae9">'+r.obs+'</div>':'')+
+        '<div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">'+
+          '<button class="btn btn-danger btn-sm" onclick="balAbrirAprov(\''+r.id+'\',\'Reprovado\')">Reprovar</button>'+
+          '<button class="btn btn-success btn-sm" onclick="balAbrirAprov(\''+r.id+'\',\'Aprovado\')">Aprovar</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ── Registros Gestão ──
+function balRenderGestaoReg() {
+  var fb=document.getElementById('balGFiltBal').value,fs=document.getElementById('balGFiltSt').value,fv=document.getElementById('balGFiltSvc').value;
+  var lista=balRegCache.filter(function(r){
+    if(fb&&r.bNome!==fb) return false;
+    if(fs&&r.status!==fs) return false;
+    if(fv&&!(r.pecas||[]).some(function(p){return p.desc===fv;})) return false;
+    return true;
+  });
+  document.getElementById('balGestaoND').style.display=lista.length?'none':'block';
+  var tb=document.getElementById('balGestaoBody');
+  if(!lista.length){tb.innerHTML='';return;}
+  tb.innerHTML=lista.map(function(r){
+    var tot=r.valor||balTot(r.pecas);
+    var acoes=r.status==='Aguardando'
+      ?'<button class="btn btn-success btn-sm" onclick="balAbrirAprov(\''+r.id+'\',\'Aprovado\')">Aprovar</button> <button class="btn btn-danger" onclick="balAbrirAprov(\''+r.id+'\',\'Reprovado\')">Reprovar</button>'
+      :r.status==='Aprovado'?'<button class="btn btn-outline btn-sm" onclick="balMudarSt(\''+r.id+'\',\'Em Execução\')">→ Em Execução</button>'
+      :r.status==='Em Execução'?'<button class="btn btn-outline btn-sm" onclick="balMudarSt(\''+r.id+'\',\'Concluído\')">→ Concluído</button>':'';
+    return '<tr>'+
+      '<td><strong>'+r.bNome+'</strong>'+(r.bSetor?'<br><span class="bal-chip">'+r.bSetor+'</span>':'')+(r.os?'<br><small style="color:#aaa">OS: '+r.os+'</small>':'')+'</td>'+
+      '<td>R$ '+balFmt(tot)+'</td><td>'+balFmtD(r.dOrc)+'</td><td>'+balFmtD(r.dEnt)+'</td>'+
+      '<td>'+balPecasMini(r.pecas)+'</td><td>'+balBSt(r.status)+'</td>'+
+      '<td style="white-space:nowrap">'+acoes+'</td>'+
+    '</tr>';
+  }).join('');
+}
+
+// ── Modal Aprovação ──
+function balAbrirAprov(id, sugerido) {
+  balAprovId=id;
+  var r=balRegCache.find(function(x){return x.id===id;}); if(!r) return;
+  var tot=r.valor||balTot(r.pecas);
+  var rows=(r.pecas||[]).map(function(p){return '<tr><td>'+p.desc+'</td><td style="text-align:right">R$ '+balFmt(p.valor)+'</td></tr>';}).join('');
+  document.getElementById('balAprovTit').textContent = sugerido==='Aprovado'?'Aprovar Orçamento':'Reprovar Orçamento';
+  document.getElementById('balAprovContent').innerHTML=
+    '<div style="background:#f5f7ff;border-radius:8px;padding:10px 14px;margin-bottom:10px">'+
+      '<strong style="color:#1a237e">'+r.bNome+'</strong>'+(r.bSetor?'<span class="bal-chip" style="margin-left:8px">'+r.bSetor+'</span>':'')+
+      '<div style="font-size:0.79rem;color:#888;margin-top:3px">'+(r.os?'OS: '+r.os+' &nbsp;|&nbsp; ':'')+'Orçamento: '+balFmtD(r.dOrc)+' &nbsp;|&nbsp; Entrega: '+balFmtD(r.dEnt)+'</div>'+
+    '</div>'+
+    '<table class="bal-pecas-tbl"><thead><tr><th>Peça / Serviço</th><th style="text-align:right">Valor</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr><td style="font-weight:700">Total</td><td style="text-align:right;font-weight:700;color:#2e7d32">R$ '+balFmt(tot)+'</td></tr></tfoot>'+
+    '</table>';
+  document.getElementById('balAprovObs').value='';
+  document.getElementById('balAprovActs').innerHTML=
+    '<button class="btn btn-outline" onclick="document.getElementById(\'balMAprov\').classList.remove(\'open\')">Cancelar</button>'+
+    (sugerido==='Aprovado'
+      ?'<button class="btn btn-danger btn-sm" onclick="balDecidir(\'Reprovado\')">Reprovar</button><button class="btn btn-success" onclick="balDecidir(\'Aprovado\')">Confirmar Aprovação</button>'
+      :'<button class="btn btn-danger" onclick="balDecidir(\'Reprovado\')">Confirmar Reprovação</button><button class="btn btn-success btn-sm" onclick="balDecidir(\'Aprovado\')">Aprovar</button>');
+  document.getElementById('balMAprov').classList.add('open');
+}
+function balDecidir(status) {
+  if(!balAprovId||!balDb) return;
+  balDb.collection('bal_registros').doc(balAprovId).update({status:status,obs_aprov:document.getElementById('balAprovObs').value.trim(),em_aprov:firebase.firestore.FieldValue.serverTimestamp()});
+  document.getElementById('balMAprov').classList.remove('open');
+}
+function balMudarSt(id,s){ if(balDb) balDb.collection('bal_registros').doc(id).update({status:s}); }
+
+// ── Balanças Cadastradas ──
+function balRenderBalList() {
+  var tb=document.getElementById('balBody'); if(!tb) return;
+  document.getElementById('balND').style.display=balBalCache.length?'none':'block';
+  tb.innerHTML=balBalCache.map(function(b){return '<tr>'+
+    '<td><strong>'+b.nome+'</strong></td><td>'+(b.setor||'—')+'</td><td>'+(b.mod||'—')+'</td>'+
+    '<td><small style="color:#aaa">'+(b.serie||'—')+'</small></td>'+
+    '<td><button class="btn btn-danger" onclick="balDelBal(\''+b.id+'\')">Excluir</button></td></tr>';
+  }).join('');
+}
+function balAbrirModalBal() {
+  ['balBNome','balBSetor','balBMod','balBSerie'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('balMBal').classList.add('open');
+}
+function balSalvarBal() {
+  var nome=(document.getElementById('balBNome').value||'').trim(); if(!nome||!balDb){alert('Informe o nome da balança.');return;}
+  balDb.collection('bal_cadastro').add({nome:nome,setor:(document.getElementById('balBSetor').value||'').trim(),mod:(document.getElementById('balBMod').value||'').trim(),serie:(document.getElementById('balBSerie').value||'').trim(),ativo:true,em:firebase.firestore.FieldValue.serverTimestamp()});
+  document.getElementById('balMBal').classList.remove('open');
+}
+function balDelBal(id){ if(confirm('Excluir esta balança?')&&balDb) balDb.collection('bal_cadastro').doc(id).delete(); }
+
+// ── View Campo ──
+function balRenderCampo() {
+  var fb=document.getElementById('balCFiltBal').value,fs=document.getElementById('balCFiltSt').value,fv=document.getElementById('balCFiltSvc').value;
+  var lista=balRegCache.filter(function(r){
+    if(fb&&r.bNome!==fb) return false;
+    if(fs&&r.status!==fs) return false;
+    if(fv&&!(r.pecas||[]).some(function(p){return p.desc===fv;})) return false;
+    return true;
+  });
+  var ag=balRegCache.filter(function(r){return r.status==='Aguardando';}).length;
+  var ap=balRegCache.filter(function(r){return r.status==='Aprovado';}).length;
+  var ex=balRegCache.filter(function(r){return r.status==='Em Execução';}).length;
+  document.getElementById('balCampoStats').innerHTML=
+    '<div class="stat-card"><div class="num">'+balRegCache.length+'</div><div class="lbl">Meus registros</div></div>'+
+    '<div class="stat-card"><div class="num" style="color:#e65100">'+ag+'</div><div class="lbl">Aguardando</div></div>'+
+    '<div class="stat-card"><div class="num" style="color:#2e7d32">'+ap+'</div><div class="lbl">Aprovados</div></div>'+
+    '<div class="stat-card"><div class="num" style="color:#0d47a1">'+ex+'</div><div class="lbl">Em execução</div></div>';
+  document.getElementById('balCampoND').style.display=lista.length?'none':'block';
+  var tb=document.getElementById('balCampoBody');
+  if(!lista.length){tb.innerHTML='';return;}
+  tb.innerHTML=lista.map(function(r){
+    var tot=r.valor||balTot(r.pecas);
+    return '<tr>'+
+      '<td><strong>'+r.bNome+'</strong>'+(r.bSetor?'<br><span class="bal-chip">'+r.bSetor+'</span>':'')+(r.os?'<br><small style="color:#aaa">OS: '+r.os+'</small>':'')+'</td>'+
+      '<td>R$ '+balFmt(tot)+'</td><td>'+balFmtD(r.dOrc)+'</td><td>'+balFmtD(r.dEnt)+'</td>'+
+      '<td>'+balPecasMini(r.pecas)+'</td>'+
+      '<td>'+balBSt(r.status)+(r.obs_aprov?'<br><small style="color:#888">'+r.obs_aprov+'</small>':'')+'</td>'+
+    '</tr>';
+  }).join('');
+}
+
+// ── Modal Novo Registro ──
+function balAbrirNovoReg() {
+  ['balROs','balRObs'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('balRVal').value='';
+  document.getElementById('balRDOrc').value=new Date().toISOString().split('T')[0];
+  document.getElementById('balRDEnt').value='';
+  document.getElementById('balRBal').value='';
+  document.getElementById('balPecasBd').innerHTML='';
+  balAddPeca(); balAddPeca();
+  document.getElementById('balMReg').classList.add('open');
+}
+function balAddPeca() {
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td><input type="text" class="bal-pecas-input" placeholder="Descrição da peça ou serviço" list="bal-dl-pecas" style="width:100%"></td>'+
+    '<td><input type="number" class="bal-pecas-input" placeholder="0,00" step="0.01" min="0" style="width:100%"></td>'+
+    '<td style="text-align:center"><button class="btn btn-danger" onclick="this.closest(\'tr\').remove()" style="padding:3px 8px;font-size:0.72rem">✕</button></td>';
+  document.getElementById('balPecasBd').appendChild(tr);
+}
+function balSalvarReg() {
+  var balId=(document.getElementById('balRBal').value||'');
+  if(!balId){alert('Selecione a balança.');return;}
+  if(!balDb){alert('Firebase não conectado.');return;}
+  var bal=balBalCache.find(function(b){return b.id===balId;});
+  var pecas=[].slice.call(document.querySelectorAll('#balPecasBd tr')).map(function(tr){
+    var ins=tr.querySelectorAll('input');
+    return{desc:(ins[0].value||'').trim(),valor:parseFloat(ins[1].value||0)};
+  }).filter(function(p){return p.desc;});
+  if(!pecas.length){alert('Adicione pelo menos uma peça ou serviço.');return;}
+  var valTotal=parseFloat(document.getElementById('balRVal').value||0)||balTot(pecas);
+  balDb.collection('bal_registros').add({
+    bId:balId,bNome:bal?bal.nome:'',bSetor:bal?(bal.setor||''):'',
+    os:(document.getElementById('balROs').value||'').trim(),
+    valor:valTotal,
+    dOrc:document.getElementById('balRDOrc').value,
+    dEnt:document.getElementById('balRDEnt').value,
+    pecas:pecas,obs:(document.getElementById('balRObs').value||'').trim(),
+    status:'Aguardando',em:firebase.firestore.FieldValue.serverTimestamp()
+  });
+  document.getElementById('balMReg').classList.remove('open');
+}
+
+// ── Fechar modais ao clicar fora ──
+['balMPIN','balMReg','balMBal','balMAprov'].forEach(function(id){
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target===document.getElementById(id)) document.getElementById(id).classList.remove('open');
+  });
+});
 </script>
 </body>
 </html>
