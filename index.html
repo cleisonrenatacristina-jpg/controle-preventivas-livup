@@ -198,6 +198,9 @@
     <h2 id="countLabel">0 registros</h2>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <div class="filters">
+        <select id="filtroSetor" onchange="renderTabela()">
+          <option value="">Todos os setores</option>
+        </select>
         <select id="filtroStatus" onchange="renderTabela()">
           <option value="">Todos os status</option>
           <option value="Levantamento">Levantamento</option>
@@ -306,6 +309,7 @@
       <div><label>Número do Relatório</label><input type="text" id="f_relatorio" placeholder="ID do relatório Field Control"></div>
       <div><label>Número da OS</label><input type="text" id="f_os" placeholder="Ex: 14894"></div>
       <div><label>Número / ID do Forno</label><input type="text" id="f_forno" placeholder="Ex: #7 - Produção 1"></div>
+      <div><label>Setor</label><input type="text" id="f_setor" list="setores-list" placeholder="Ex: Produção 1, Balança, Almoxarifado"><datalist id="setores-list"></datalist></div>
       <div><label>Técnico Responsável</label><input type="text" id="f_tecnico" placeholder="Ex: Radeione Gomes"></div>
       <div class="full"><label>Modelo do Equipamento</label><input type="text" id="f_modelo" placeholder="Ex: Rational SCC WE 202 Gás"></div>
       <div class="full"><label>Número de Série</label><input type="text" id="f_serie" placeholder="Ex: G22SI19022730950"></div>
@@ -610,7 +614,7 @@ function confirmarImport() {
 
 // ── CRUD ───────────────────────────────────────────────────────
 function limparForm() {
-  ['f_relatorio','f_os','f_forno','f_tecnico','f_modelo','f_serie','f_pecas',
+  ['f_relatorio','f_os','f_forno','f_setor','f_tecnico','f_modelo','f_serie','f_pecas',
    'f_obs_prev','f_data_levantamento','f_valor_orcamento','f_link_orcamento',
    'f_obs_orcamento','f_trabalho','f_data_execucao'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f_conferencia').value = '';
@@ -621,6 +625,7 @@ function preencherForm(r) {
   document.getElementById('f_relatorio').value         = r.relatorio||'';
   document.getElementById('f_os').value                = r.os||'';
   document.getElementById('f_forno').value             = r.forno||'';
+  document.getElementById('f_setor').value             = r.setor||'';
   document.getElementById('f_tecnico').value           = r.tecnico||'';
   document.getElementById('f_modelo').value            = r.modelo||'';
   document.getElementById('f_serie').value             = r.serie||'';
@@ -642,6 +647,7 @@ function lerForm() {
     relatorio:         document.getElementById('f_relatorio').value.trim(),
     os:                document.getElementById('f_os').value.trim(),
     forno:             document.getElementById('f_forno').value.trim(),
+    setor:             document.getElementById('f_setor').value.trim(),
     tecnico:           document.getElementById('f_tecnico').value.trim(),
     modelo:            document.getElementById('f_modelo').value.trim(),
     serie:             document.getElementById('f_serie').value.trim(),
@@ -664,7 +670,7 @@ function salvar() {
   reg.id = editandoId || Date.now().toString();
   registros = editandoId ? registros.map(r=>r.id===editandoId?reg:r) : [...registros,reg];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
-  fecharModal(); renderTabela(); renderStats();
+  fecharModal(); atualizarFiltroSetor(); renderTabela(); renderStats();
 }
 
 function excluir(id) {
@@ -702,12 +708,24 @@ function calcDias(d1,d2){if(!d1)return null;return Math.floor((new Date(d2||new 
 function fmtData(d){if(!d)return '—';const[y,m,dia]=d.split('-');return`${dia}/${m}/${y}`;}
 function badgeStatus(s){const m={'Levantamento':'badge-orange','Em Aprovação':'badge-blue','Aprovado':'badge-purple','Executado':'badge-green','Reprovado':'badge-red'};return`<span class="badge ${m[s]||'badge-orange'}">${s}</span>`;}
 
+function atualizarFiltroSetor() {
+  const setores = [...new Set(registros.map(r=>r.setor).filter(Boolean))].sort();
+  const sel = document.getElementById('filtroSetor');
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Todos os setores</option>' +
+    setores.map(s=>`<option value="${s}"${s===atual?' selected':''}>${s}</option>`).join('');
+  const dl = document.getElementById('setores-list');
+  if(dl) dl.innerHTML = setores.map(s=>`<option value="${s}">`).join('');
+}
+
 function renderTabela(){
+  const fse=document.getElementById('filtroSetor').value;
   const fs=document.getElementById('filtroStatus').value;
   const ff=document.getElementById('filtroForno').value.toLowerCase();
   const lista=registros.filter(r=>{
+    if(fse&&r.setor!==fse)return false;
     if(fs&&r.status!==fs)return false;
-    if(ff&&![r.forno,r.os,r.modelo,r.relatorio].some(v=>(v||'').toLowerCase().includes(ff)))return false;
+    if(ff&&![r.forno,r.os,r.modelo,r.relatorio,r.setor].some(v=>(v||'').toLowerCase().includes(ff)))return false;
     return true;
   });
   document.getElementById('countLabel').textContent=`${lista.length} registro${lista.length!==1?'s':''}`;
@@ -745,6 +763,7 @@ function renderTabela(){
       <td>${r.relatorio?`<small style="color:#aaa">${r.relatorio.slice(0,8)}…</small><br>`:''}
         <strong>OS ${r.os}</strong><br>
         <span style="color:#1a237e;font-weight:600">${r.forno}</span><br>
+        ${r.setor?`<span style="display:inline-block;background:#e8eaf6;color:#3949ab;font-size:0.72rem;padding:1px 8px;border-radius:10px;font-weight:600;margin-top:2px">${r.setor}</span><br>`:''}
         <small style="color:#888">${r.modelo||''}</small>
         ${r.tecnico?`<br><small style="color:#aaa">${r.tecnico}</small>`:''}
         ${obsHtml}
@@ -1082,7 +1101,7 @@ seed.forEach(s => {
   else registros[idx] = { ...registros[idx], ...s }; // atualiza campos do seed
 });
 localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
-renderStats(); renderTabela();
+renderStats(); atualizarFiltroSetor(); renderTabela();
 
 function trocarTab(id) {
   document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['registros','orcamentos','financeiro','pecas'][i]===id);});
